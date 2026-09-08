@@ -51,8 +51,8 @@ catalog does not guarantee a generated 3D preview.
   multi-tenant SaaS operation is outside the current security model.
 - No independent security review has been completed.
 - Projektlizenz: AGPL-3.0-only; siehe [LICENSE](LICENSE) und
-  [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md). Eine öffentliche
-  Veröffentlichung bleibt von Historien-, Ziel- und Releasefreigabe abhängig.
+  [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md). Der bereinigte Quellstand ist
+  öffentlich; Release-Tag und Produktionsfreigabe bleiben getrennte Schritte.
 
 Historical internal audit and deployment records are intentionally not part of
 the public source snapshot. Dated validation results must not be read as the

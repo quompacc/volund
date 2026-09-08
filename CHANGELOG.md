@@ -4,7 +4,7 @@ All notable changes to VÖLUND are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Version headings are labels. Forge-specific comparison links remain omitted
-until the new source snapshot and its release workflow are validated.
+until a signed release tag is created.
 
 ## [Unreleased]
 
@@ -14,17 +14,17 @@ No changes yet.
 
 ### Added
 
-- Öffentliche Zielentscheidung abgeschlossen: VÖLUND soll als bereinigter,
-  quellcode-only Snapshot ohne bisherige Git-Historie im neuen öffentlichen
-  GitHub-Repository `quompacc/volund` erscheinen. Interne Nachweisverzeichnisse,
-  Binärpakete, `node_modules` und Systembibliotheken bleiben ausgeschlossen;
-  Veröffentlichung, Historienprüfung und Release-Automation folgen separat.
+- Bereinigter, quellcode-only Snapshot ohne bisherige Git-Historie im
+  öffentlichen GitHub-Repository `quompacc/volund`, mit real gerenderten
+  Produktoberflächen in der README, GitHub-CI und reproduzierbarem Quellarchiv.
+  Interne Betriebsnachweise, Binärpakete, `node_modules` und Systembibliotheken
+  bleiben ausgeschlossen.
 
 - Betreiberentscheidung für AGPL-3.0-only umgesetzt: offizieller Lizenztext,
   Rust-/npm-Metadaten, Drittanbieterhinweise und Inventare für 236 externe
   Rust- sowie 120 npm-Pakete. Lizenztexte werden im Webbuild mitgeliefert;
-  drei Vertragsprüfungen sichern Inhalt und Zuordnung. L.1 abgeschlossen,
-  öffentliche Historie und Release bleiben separat gesperrt/offen.
+  drei Vertragsprüfungen sichern Inhalt und Zuordnung. L.1, die bereinigte
+  öffentliche Historie und deren Quellartefakt-Gates sind abgeschlossen.
 
 - Read-only-Bestandsprüfung der sieben verbleibenden Auditpunkte mit
   belegten Freigabeabhängigkeiten und Lizenzinventar als Vorarbeit zu L.1.

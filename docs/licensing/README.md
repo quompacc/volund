@@ -60,13 +60,13 @@ prüfen. Der aktuelle Installationsvertrag liefert diese nicht aus.
 3. Wer eine veränderte netzwerkfähige Version betreibt, muss deren entfernten
    Nutzern nach AGPL §13 ein deutliches, kostenloses Angebot zum Bezug des
    entsprechenden Quellcodes machen. Ein bloßer Lizenzlink ersetzt das nicht.
-4. Vor öffentlichem Release unter L.4 ein konkretes, geprüftes Quellarchiv
-   zum ausgelieferten Stand und einen sichtbaren Quellcodezugang festlegen
-   und testen. Ziel und reiner Quellumfang sind entschieden; bis zur Prüfung
-   des neuen Snapshots wird hier kein fiktiver Downloadlink eingerichtet.
+4. Der öffentliche Quellstand und das reproduzierbare Quellarchiv werden durch
+   L.4 und die GitHub-CI geprüft. Ein späterer Tag oder Binärrelease muss diese
+   Bindung erneut bestätigen und darf keine zusätzlichen Artefakte ungeprüft
+   aufnehmen.
 
 Die Entscheidung ändert weder rückwirkend alte Commits noch die Freigabe
-privater Betriebsnachweise. L.2 bleibt blockiert, L.4 offen; L.5 ist bestanden.
+privater Betriebsnachweise. L.2, L.4 und L.5 sind bestanden.
 Diese betrieblichen Freigabegrenzen sind keine zusätzlichen Lizenzbedingungen.
 
 ## Herkunft der übernommenen Texte
