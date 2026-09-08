@@ -87,7 +87,13 @@ jobs:
       - name: Run complete Rust and PostgreSQL gate
         env:
           VOLUND_TEST_RUNNER: ${{ github.workspace }}/target/debug/volundd
-        run: cargo test --workspace
+        run: |
+          useradd --create-home --shell /bin/sh volund-ci
+          chown -R volund-ci:volund-ci "${GITHUB_WORKSPACE}"
+          runuser -u volund-ci -- env \
+            VOLUND_TEST_DATABASE_URL="${VOLUND_TEST_DATABASE_URL}" \
+            VOLUND_TEST_RUNNER="${VOLUND_TEST_RUNNER}" \
+            cargo test --workspace
 
       - name: Test backup contract
         env:
