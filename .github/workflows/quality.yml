@@ -112,7 +112,6 @@ jobs:
           cargo audit --ignore RUSTSEC-2023-0071
 
   source-artifact:
-    needs: debian-native
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -137,7 +136,7 @@ jobs:
           mv "volund-$version.1.tar.gz" "volund-$version.tar.gz"
           rm "volund-$version.2.tar.gz"
           sha256sum "volund-$version.tar.gz" > SHA256SUMS
-          tar -tzf "volund-$version.tar.gz" | grep -q "^volund-$version/LICENSE$"
+          tar -tzf "volund-$version.tar.gz" "volund-$version/LICENSE" >/dev/null
 
       - name: Upload verified source archive
         uses: actions/upload-artifact@v4
