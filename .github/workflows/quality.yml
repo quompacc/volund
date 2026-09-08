@@ -47,6 +47,7 @@ jobs:
           libocct-foundation-dev libocct-modeling-data-dev
           libocct-modeling-algorithms-dev libocct-visualization-dev
           libocct-ocaf-dev libocct-data-exchange-dev
+          libtbb-dev libfontconfig1-dev
           postgresql-client && rm -rf /var/lib/apt/lists/*
 
       - name: Record toolchain versions
