@@ -59,6 +59,12 @@ jobs:
           cmake --version
           psql --version
 
+      - name: Verify executable source contracts
+        run: |
+          test -x apps/volundd/tests/slow-converter.sh
+          test -x deploy/backup/tests/backup-test.sh
+          test -x deploy/backup/volund-backup
+
       - name: Install locked web dependencies
         working-directory: apps/volund-web
         run: npm ci
