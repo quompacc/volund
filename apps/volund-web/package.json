@@ -1,0 +1,25 @@
+{
+  "name": "@volund/web",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "version": "0.39.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "dev": "vite",
+    "test": "vitest run",
+    "test:firefox-responsive": "node tests/firefox-responsive.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.2.108",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "0.185.4",
+    "happy-dom": "^20.11.6",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

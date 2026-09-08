@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>VÖLUND – isolierte F.4-Ressourcenprüfung</title>
+<link rel="stylesheet" href="../src/styles.css">
+<style>
+  body{padding:24px}main{max-width:1180px;margin:auto}canvas{width:100%;height:620px;display:block;background:#111827}
+  dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 20px}dt{font-weight:700}pre{white-space:pre-wrap}
+</style>
+<main>
+  <h1>F.4 – 1.500-Mesh-Lebenszyklus</h1>
+  <p>Produktiver CadViewer mit synthetischem GLB; keine API und keine Produktionsdaten.</p>
+  <dl>
+    <dt>Grenze Erstladen</dt><dd>≤ 10.000 ms</dd>
+    <dt>Grenze Wiederholung</dt><dd>≤ 10.000 ms je Ladezyklus</dd>
+    <dt>Geometrie</dt><dd>1.500 sichtbare Meshes</dd>
+    <dt>Freigabe</dt><dd>0 Modell-Meshes und Rückkehr der GPU-Zähler zur Baseline nach jedem Clear</dd>
+    <dt>Zyklen</dt><dd>10 Load/Clear-Wiederholungen</dd>
+  </dl>
+  <p id="status" role="status">Fixture wird erzeugt …</p>
+  <canvas aria-label="1.500-Mesh-Testbaugruppe"></canvas>
+  <pre id="metrics" aria-label="Messwerte"></pre>
+</main>
+<script type="module">
+import * as THREE from "three";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+import { CadViewer } from "../src/viewer.ts";
+
+const limits = { loadMs: 10000, cycles: 10, meshes: 1500 };
+const status = document.querySelector("#status");
+const metrics = document.querySelector("#metrics");
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+const source = new THREE.Group();
+source.name = "Large Assembly";
+const geometry = new THREE.BoxGeometry(0.72, 0.72, 0.72);
+const material = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.7 });
+for (let index = 0; index < limits.meshes; index += 1) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = `Part ${index + 1}`;
+  mesh.position.set(index % 50, Math.floor(index / 50) % 10, Math.floor(index / 500) * 2);
+  source.add(mesh);
+}
+const fixtureStarted = performance.now();
+const glb = await new GLTFExporter().parseAsync(source, { binary: true });
+const fixtureMs = performance.now() - fixtureStarted;
+const url = URL.createObjectURL(new Blob([glb]));
+geometry.dispose();
+material.dispose();
+
+const viewer = new CadViewer(document.querySelector("canvas"));
+await nextFrame();
+const firstStarted = performance.now();
+await viewer.load(url);
+await nextFrame();
+const firstLoadMs = performance.now() - firstStarted;
+viewer.clear();
+await nextFrame();
+const baseline = viewer.resourceSnapshot();
+const loads = [];
+let residualPeak = { geometries: baseline.geometries, textures: baseline.textures, modelMeshes: 0 };
+let active;
+for (let cycle = 0; cycle < limits.cycles; cycle += 1) {
+  const started = performance.now();
+  await viewer.load(url);
+  await nextFrame();
+  loads.push(performance.now() - started);
+  active = viewer.resourceSnapshot();
+  viewer.clear();
+  await nextFrame();
+  const residual = viewer.resourceSnapshot();
+  residualPeak = {
+    geometries: Math.max(residualPeak.geometries, residual.geometries),
+    textures: Math.max(residualPeak.textures, residual.textures),
+    modelMeshes: Math.max(residualPeak.modelMeshes, residual.modelMeshes),
+  };
+}
+const finalStarted = performance.now();
+await viewer.load(url);
+await nextFrame();
+const finalLoadMs = performance.now() - finalStarted;
+active = viewer.resourceSnapshot();
+URL.revokeObjectURL(url);
+const worstLoadMs = Math.max(...loads, finalLoadMs);
+const passed = firstLoadMs <= limits.loadMs
+  && worstLoadMs <= limits.loadMs
+  && active.modelMeshes === limits.meshes
+  && residualPeak.modelMeshes === 0
+  && residualPeak.geometries <= baseline.geometries
+  && residualPeak.textures <= baseline.textures;
+status.textContent = passed ? "BESTANDEN" : "FEHLER";
+status.dataset.result = passed ? "passed" : "failed";
+metrics.textContent = JSON.stringify({ limits, fixtureMs, glbBytes: glb.byteLength, firstLoadMs, worstLoadMs,
+  baseline, active, residualPeak }, null, 2);
+window.addEventListener("pagehide", () => viewer.dispose(), { once: true });
+</script>
+</html>

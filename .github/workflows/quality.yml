@@ -1,0 +1,137 @@
+name: quality
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debian-native:
+    runs-on: ubuntu-latest
+    container: node:20-trixie
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: volund_ci_test
+          POSTGRES_USER: volund_ci
+          POSTGRES_PASSWORD: volund_ci
+        options: >-
+          --health-cmd "pg_isready -U volund_ci -d volund_ci_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      VOLUND_TEST_DATABASE_URL: postgres://volund_ci:volund_ci@postgres:5432/volund_ci_test
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Debian 13 build dependencies
+        run: >-
+          apt-get update && apt-get install -y --no-install-recommends
+          ca-certificates git build-essential cmake pkg-config
+          cargo rustc rust-clippy rustfmt
+          libassimp-dev assimp-utils
+          libocct-foundation-dev libocct-modeling-data-dev
+          libocct-modeling-algorithms-dev libocct-visualization-dev
+          libocct-ocaf-dev libocct-data-exchange-dev
+          postgresql-client && rm -rf /var/lib/apt/lists/*
+
+      - name: Record toolchain versions
+        run: |
+          rustc --version
+          cargo --version
+          node --version
+          npm --version
+          cmake --version
+          psql --version
+
+      - name: Install locked web dependencies
+        working-directory: apps/volund-web
+        run: npm ci
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint every Rust target
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test and build web application
+        working-directory: apps/volund-web
+        run: |
+          npm test
+          npm run build
+          npm audit
+
+      - name: Build and test native converter
+        run: |
+          cmake -S native/cad-convert -B build/cad-convert -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/cad-convert --parallel 2
+          ctest --test-dir build/cad-convert --output-on-failure
+          build/cad-convert/volund-cad-convert version |
+            grep -q '^volund-cad-convert 0\.39\.0 contract-v1 occt-'
+
+      - name: Run complete Rust and PostgreSQL gate
+        env:
+          VOLUND_TEST_RUNNER: ${{ github.workspace }}/target/debug/volundd
+        run: cargo test --workspace
+
+      - name: Test backup contract
+        env:
+          BACKUP_SCRIPT: ${{ github.workspace }}/deploy/backup/volund-backup
+        run: sh deploy/backup/tests/backup-test.sh
+
+      - name: Audit Rust lockfile
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo audit --ignore RUSTSEC-2023-0071
+
+  source-artifact:
+    needs: debian-native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build reproducible source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./apps/volund-web/package.json').version")
+          test "$version" = "0.39.0"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            test "$GITHUB_REF_NAME" = "v$version"
+          fi
+          for copy in 1 2; do
+            git archive --format=tar --prefix="volund-$version/" HEAD |
+              gzip -n > "volund-$version.$copy.tar.gz"
+          done
+          cmp "volund-$version.1.tar.gz" "volund-$version.2.tar.gz"
+          mv "volund-$version.1.tar.gz" "volund-$version.tar.gz"
+          rm "volund-$version.2.tar.gz"
+          sha256sum "volund-$version.tar.gz" > SHA256SUMS
+          tar -tzf "volund-$version.tar.gz" | grep -q "^volund-$version/LICENSE$"
+
+      - name: Upload verified source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: volund-source-${{ github.sha }}
+          path: |
+            volund-0.39.0.tar.gz
+            SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

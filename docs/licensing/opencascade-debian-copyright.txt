@@ -1,0 +1,220 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Open CASCADE
+Source: http://git.dev.opencascade.org/gitweb/?p=occt.git;a=summary
+Comment:
+ This is based on OpenCASCADE Technology (OCCT).
+ .
+ OCCT 6.7.0 (released on December 2013) has been relicensed to LGPL 2.1,
+ with an exception clause to allow embedding header files in derived work.
+ .
+ There are some files which are marked with "The original implementation
+ Copyright: (C) RINA S.p.A", so we approached upstream asking for clarification
+ about the relicensing and we've received this answer from our upstream contact
+ Andrey BETENEV <andrey.betenev ät opencascade.com> on	Sat, 26 May 2018
+ 23:26:17 +0300:
+ <quote>
+ Regarding the files holding RINA copyrights, they have been incorporated
+ according to the license agreement with RINA S.p.A, dated 2006-05-10.  The
+ license itself is defined as follows:
+ .
+ RINA grants to OCC a free, worldwide and transferable license to :
+ - reproduce or to have all or part of the Components listed in article 3
+   reproduced as well as all updates as mentioned hereinafter on any medium, in
+   particular, paper, magnetic, digital, IT, electronic, CD-ROM, CD-DVD or any
+   other current or future, known or unknown medium, and this, without any
+   limitation as to number,
+ - adapt or to have all or part of the Components adapted, the right to correct,
+   have developed, carry out or have Derivative Works carried out, maintain,
+   decompile, mix, modify, assemble, arrange, digitalise, put onto any
+   configuration, interface, any software, database, IT product, to use the
+   algorithms for any purpose and transcribe fully or partly, in any form, to
+   integrate all or part with or into existing or future works, and this on any
+   medium,
+ - translate or have translated all or part of the Components into any language
+   or any programming language, and this on any medium.
+ .
+ OCC undertakes to integrate said Components (modified or not) as open source
+ (e.g. by including them preferably into Open CASCADE or, being this impossible,
+ secondarily into SALOME) as condition for having the right to use them for the
+ benefit of OCC's customers in some other projects than LH3D-3H.  ...
+ </quote>
+ .
+ The following files were removed because
+ *.bat: Windows cruft
+ samples/ios: Non-free license
+ samples/mfc: Windows cruft
+ samples/qt/FuncDemo: Non-free license
+ .gittattributes, as they cause problems during packaging.
+Files-Excluded:
+ genconf.bat
+ gendoc.bat
+ genproj.bat
+ upgrade.bat
+ samples/ios
+ samples/mfc
+ samples/qt/FuncDemo
+ .gitattributes
+
+Files: *
+Copyright: 1990-2000 by Matra Datavision
+           1999-2023 Open CASCADE SAS
+	   2007-2010 CEA/DEN, EDF R&D, OPEN CASCADE
+	   2003-2007 OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN, CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
+License: LGPL-2.1 with OpenCASCADE exception
+ Open CASCADE Technology is free software; you can redistribute it and / or
+ modify it under the terms of the GNU Lesser General Public version 2.1 as
+ published by the Free Software Foundation, with special exception defined in
+ the file OCCT_LGPL_EXCEPTION.txt (text reproduced below).
+ .
+ On Debian systems, the full text of the GNU Lesser General Public
+ License version 2.1 can be found in the file
+ `/usr/share/common-licenses/LGPL-2.1'.
+ .
+ Alternatively, Open CASCADE Technology may be used under the terms of Open
+ CASCADE commercial license or contractual agreement.
+ .
+ Text of OCCT_LGPL_EXCEPTION.txt follows:
+ .
+ Open CASCADE exception (version 1.0) to GNU LGPL version 2.1:
+ .
+ The object code (i.e. not a source) form of a "work that uses the Library"
+ can incorporate material from a header file that is part of the Library.
+ As a special exception to the GNU Lesser General Public License version 2.1,
+ you may distribute such object code incorporating material from header files
+ provided with the Open CASCADE Technology libraries (including code of CDL
+ generic classes) under terms of your choice, provided that you give
+ prominent notice in supporting documentation to this code that it makes use
+ of or is based on facilities provided by the Open CASCADE Technology software.
+
+Files: src/NCollection/NCollection_UtfIterator.lxx
+Copyright: 2001-2004 Unicode, Inc.
+License: Unicode
+ This source code is provided as is by Unicode, Inc. No claims are
+ made as to fitness for any particular purpose. No warranties of any
+ kind are expressed or implied. The recipient agrees to determine
+ applicability of information provided. If this file has been
+ purchased on magnetic or optical media from Unicode, Inc., the
+ sole remedy for any claim will be exchange of defective media
+ within 90 days of receipt.
+ .
+ Limitations on Rights to Redistribute This Code
+ .
+ Unicode, Inc. hereby grants the right to freely use the information
+ supplied in this file in the creation of products supporting the
+ Unicode Standard, and to make copies of this file in any form
+ for internal or external distribution as long as this notice
+ remains attached.
+
+Files: src/ExprIntrp/ExprIntrp.tab.*
+ src/StepFile/step.tab.*
+ src/ExpToCasExe/exptocas.tab.*xx
+Copyright: 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation, Inc.
+License: GPL-3+-with-Bison-exception-2.2
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ As a special exception, you may create a larger work that contains
+ part or all of the Bison parser skeleton and distribute that work
+ under terms of your choice, so long as that work isn't itself a
+ parser generator using the skeleton or a modified version thereof
+ as a parser skeleton.  Alternatively, if you modify or redistribute
+ the parser skeleton itself, you may (at your option) remove this
+ special exception, which will cause the skeleton and the resulting
+ Bison output files to be licensed under the GNU General Public
+ License without this special exception.
+ .
+ This special exception was added by the Free Software Foundation in
+ version 2.2 of Bison.
+
+Files: src/FlexLexer/FlexLexer.h
+Copyright: 1993 The Regents of the University of California.
+License: BSD-2-clause
+ Copyright (c) 1993 The Regents of the University of California.
+ All rights reserved.
+ .
+ This code is derived from software contributed to Berkeley by
+ Kent Williams and Tom Epperly.
+ .
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+ .
+  1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+ .
+  Neither the name of the University nor the names of its contributors
+  may be used to endorse or promote products derived from this software
+  without specific prior written permission.
+ .
+  THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+  PURPOSE.
+
+Files: src/OpenGl/OpenGl_glext.h
+Copyright: 2013-2014 The Khronos Group Inc.
+License: Expat
+
+Files: adm/cmake/cotire.cmake
+Copyright: 2012-2018 Sascha Kratky
+License: Expat
+
+Files: src/OpenGl/OpenGl_HaltonSampler.hxx
+Copyright: 2012 Leonhard Gruenschloss <leonhard@gruenschloss.org>
+License: Expat
+
+Files: debian/*
+Copyright: 2008-2011 "Adam C. Powell, IV" <hazelsct@debian.org>
+           2017 Normand Chamberland <gemnoc@gmail.com>
+           2012-2022 Kurt Kremitzki <kkremitzki@gmail.com>
+           2018-2024 Tobias Frost <tobi@debian.org>
+License: LGPL-2.1
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ .
+ On Debian systems, the full text of the GNU Lesser General Public
+ License version 2.1 can be found in the file
+ `/usr/share/common-licenses/LGPL-2.1'.
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights to
+ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ of the Software, and to permit persons to whom the Software is furnished to do
+ so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.

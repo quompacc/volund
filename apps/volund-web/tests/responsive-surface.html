@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VÖLUND synthetische Prüfansicht</title>
+<div id="app"></div>
+<script type="module">
+const id = '00000000-0000-4000-8000-000000000001';
+const long = 'Präzisionsbaugruppenüberarbeitungsdokumentation mit außergewöhnlich langen deutschen Bezeichnungen';
+const model = { id, slug: 'pruefmodell', name: long, description: long, kind: 'part', licenseKind: 'not-specified', licenseValue: null, authorName: long, primaryFileId: null, fileCount: 0, formats: [], updatedAtUnixMs: 0, tags: [], tagIds: [], collections: [], viewerRotation: [0,0,0], revision: 0, thumbnail: { kind: 'default', candidateId: null, url: null, status: 'default' } };
+const page = { items: [], total: 0, offset: 0, limit: 100 };
+const library = { id, key: 'cad', name: long, readOnly: false, fileCount: 0, missingFileCount: 0, latestScanStatus: null, revision: 0, filesystemPath: '/synthetisch/' + 'Baugruppen/'.repeat(12) + id, enabled: true, latestScanStartedAtUnixMs: null, updatedAtUnixMs: 0, storage: { state: 'healthy', checkedAtUnixMs: 0, reachable: true, directory: true, readable: true, writable: true, totalBytes: 1000000, availableBytes: 900000, usedPercent: 10, filesystemType: 'Prüfdaten', reasons: [] } };
+const values = {
+  '/setup': { initialized: true, bootstrapAvailable: false },
+  '/session': { sessionId: id, userId: id, email: 'pruefung@example.invalid', displayName: 'Prüfung', role: 'owner', mustChangePassword: false },
+  '/health': { status: 'ok', version: 'Prüfansicht' },
+  '/roots': [library], '/roots/cad/files': page, '/roots/cad/folders': page, '/models': [model], '/tags': page, '/collections': page, '/authors': page,
+  '/sessions': [], '/settings': [], '/users': [], '/conversion-profiles': [], '/scan-schedules': [],
+  '/imports': page, '/imports/latest-uploaded': null,
+  '/imports/storage': { uploadedBytes: 0, reservedBytes: 0, reclaimableBytes: 0, capacityBytes: 1000000 },
+  '/operations/health': { state: 'healthy', checkedAtUnixMs: 0, version: 'Prüfansicht', database: { state: 'healthy', serverVersion: 17, schemaTables: 37, expectedSchemaTables: 37, appliedMigrations: 32, expectedMigrations: 32 }, workers: [], backup: { key: 'backup', state: 'healthy', lastOutcome: 'success', lastSucceededAtUnixMs: 0, lastFailedAtUnixMs: null, expectedIntervalSeconds: 86400, reasons: [] }, libraries: [library], recentScans: [] },
+  '/retention/preview': { artifactRuns: 0, artifactFiles: 0, artifactBytes: 0, diagnostics: 0, reasonCodes: [] }, '/jobs': page, '/quarantines': page,
+  '/preferences': { previewAutoLoad: 'manual', background: 'dark', gridVisible: true, contrast: 'balanced', renderStyle: 'solid', problemMinimumSeverity: 'info', revision: 0 },
+  [`/models/${id}`]: model,
+  [`/models/${id}/files`]: page, [`/models/${id}/components`]: [],
+  [`/models/${id}/history`]: page, [`/models/${id}/problems`]: [],
+  [`/models/${id}/thumbnail-candidates`]: [], '/slicer-targets': [],
+};
+// Alle Requests bleiben im Frame; unbekannte Verträge schlagen sichtbar fehl.
+window.fetch = async (input, init) => {
+  const path = new URL(String(input), location.href).pathname.replace('/api/v1', '');
+  if (init?.method && init.method !== 'GET') return Response.json({ error: { message: 'Prüfansicht: Mutation gesperrt' } }, { status: 405 });
+  if (Object.hasOwn(values, path)) return Response.json(values[path]);
+  document.documentElement.dataset.fixtureError = path;
+  return Response.json({ error: { message: `Fixture fehlt: ${path}` } }, { status: 501 });
+};
+await import('/src/main.ts');
+</script>
+</html>

@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll the VÖLUND preview queue
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=10s
+AccuracySec=1s
+Unit=volund-preview-worker.service
+
+[Install]
+WantedBy=timers.target

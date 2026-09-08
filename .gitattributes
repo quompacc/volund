@@ -1,0 +1,29 @@
+* text=auto
+
+.gitattributes text eol=lf
+.gitignore text eol=lf
+*.rs text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.hxx text eol=lf
+*.cmake text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.md text eol=lf
+*.service text eol=lf
+*.service.example text eol=lf
+deploy/backup/volund-backup text eol=lf
+CMakeLists.txt text eol=lf
+
+# Lizenztexte bleiben auch unter Windows bytegleich mit den LF-Prüfsummen.
+LICENSE text eol=lf
+docs/licensing/*.txt text eol=lf
+apps/volund-web/public/*.txt text eol=lf
+# Originale Fremdtexte enthalten teils absichtliche Schlussleerzeichen.
+docs/licensing/rust-notices.txt whitespace=-blank-at-eol
+docs/licensing/web-notices.txt whitespace=-blank-at-eol
+apps/volund-web/public/THIRD_PARTY_NOTICES.txt whitespace=-blank-at-eol

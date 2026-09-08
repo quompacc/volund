@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll the VÖLUND durable library scan queue
+
+[Timer]
+OnBootSec=10s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=volund-scan-worker.service
+
+[Install]
+WantedBy=timers.target

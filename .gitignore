@@ -1,0 +1,18 @@
+/target/
+/build/
+apps/volund-web/node_modules/
+apps/volund-web/dist/
+/.idea/
+/.vscode/
+*.user
+*.swp
+
+# Local data and CAD fixtures are never committed by default.
+/var/
+/fixtures/private/
+
+# Large, local real-world CAD samples are never stored in Git.
+/assets/*.step
+/assets/*.stp
+/assets/**/*.step
+/assets/**/*.stp

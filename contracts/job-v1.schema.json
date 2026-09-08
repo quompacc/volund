@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volund.invalid/contracts/job-v1.schema.json",
+  "title": "VÖLUND conversion job v1",
+  "type": "object",
+  "required": [
+    "jobId",
+    "state",
+    "input",
+    "profile",
+    "submittedAtUnixMs",
+    "updatedAtUnixMs",
+    "message"
+  ],
+  "properties": {
+    "jobId": { "type": "string", "pattern": "^[0-9]+-[0-9]+$" },
+    "state": { "enum": ["queued", "running", "ready", "failed"] },
+    "input": { "type": "string" },
+    "profile": { "enum": ["web", "fine"] },
+    "submittedAtUnixMs": { "type": "integer", "minimum": 0 },
+    "updatedAtUnixMs": { "type": "integer", "minimum": 0 },
+    "message": { "type": "string" }
+  },
+  "additionalProperties": false
+}

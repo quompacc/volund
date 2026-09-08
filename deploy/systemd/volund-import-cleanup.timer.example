@@ -1,0 +1,11 @@
+[Unit]
+Description=Run VÖLUND import staging cleanup hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5m
+Unit=volund-import-cleanup.service
+
+[Install]
+WantedBy=timers.target

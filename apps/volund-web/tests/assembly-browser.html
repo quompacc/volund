@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>VÖLUND – isolierte F.3-Komponentenprüfung</title>
+<link rel="stylesheet" href="../src/styles.css">
+<link rel="stylesheet" href="../src/phase5.css">
+<style>body{padding:24px}canvas{width:100%;height:360px;display:block}main{max-width:1100px;margin:auto}</style>
+<main>
+  <h1>F.3 – synthetische Baugruppe</h1>
+  <p>Produktmodule mit zwei Würfeln; keine API und keine Produktionsdaten.</p>
+  <canvas aria-label="3D-Baugruppe"></canvas>
+  <section id="structure"></section>
+  <p id="status" role="status">Vorschau lädt …</p>
+</main>
+<script type="module">
+import * as THREE from "three";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+import { CadViewer } from "../src/viewer.ts";
+import { assemblyTreeMarkup, mountAssemblyTree } from "../src/assembly-tree.ts";
+import { manifest } from "./assembly-fixture.ts";
+const model = new THREE.Group();
+model.name = "Baugruppe";
+const subgroup = new THREE.Group();
+subgroup.name = "Unterbaugruppe";
+model.add(subgroup);
+for (const [name, color, x] of [["Rot", 0xff0000, -1.2], ["Blau", 0x0000ff, 1.2]]) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ color }));
+  mesh.name = name;
+  mesh.position.x = x;
+  subgroup.add(mesh);
+}
+const glb = await new GLTFExporter().parseAsync(model, { binary: true });
+const url = URL.createObjectURL(new Blob([glb]));
+const viewer = new CadViewer(document.querySelector("canvas"));
+await viewer.load(url);
+URL.revokeObjectURL(url);
+model.traverse((object) => { if (object.isMesh) { object.geometry.dispose(); object.material.dispose(); } });
+const host = document.querySelector("#structure");
+host.innerHTML = assemblyTreeMarkup(manifest, "synthetisch.step");
+mountAssemblyTree(host, manifest, {
+  select: (name) => viewer.selectObject(name), visible: (name, visible) => viewer.setObjectVisible(name, visible),
+  isolate: (name) => viewer.isolateObject(name), reset: () => viewer.resetVisibility(),
+});
+document.querySelector("#status").textContent = "Vorschau bereit";
+window.addEventListener("pagehide", () => viewer.dispose(), { once: true });
+</script>
+</html>

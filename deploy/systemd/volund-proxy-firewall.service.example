@@ -1,0 +1,12 @@
+[Unit]
+Description=Restrict VÖLUND upstream access to the central Caddy proxy
+Before=volundd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/volund/volund-proxy-firewall.nft
+ExecStop=/usr/sbin/nft delete table inet volund_proxy
+
+[Install]
+WantedBy=multi-user.target

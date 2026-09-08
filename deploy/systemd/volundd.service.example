@@ -1,0 +1,49 @@
+# Native VÖLUND API service template.
+[Unit]
+Description=VÖLUND CAD vault daemon
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=volund
+Group=volund
+ExecStart=/usr/local/bin/volundd serve
+EnvironmentFile=-/etc/volund/volund.env
+WorkingDirectory=/srv/volund
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=40s
+UMask=0027
+MemoryHigh=5500M
+MemoryMax=6500M
+MemorySwapMax=1G
+TasksMax=160
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/srv/volund/library
+ReadWritePaths=/srv/volund/incoming
+ReadWritePaths=/srv/volund/support
+ReadOnlyPaths=/srv/volund/derived
+ReadOnlyPaths=/usr/share/volund/web
+
+[Install]
+WantedBy=multi-user.target

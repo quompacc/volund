@@ -1,0 +1,92 @@
+#!/bin/sh
+set -eu
+
+umask 077
+
+backup_dir=${VOLUND_BACKUP_DIR:-/var/backups/volund}
+source_path=${VOLUND_BACKUP_SOURCE_PATH:-/srv/volund}
+database=${VOLUND_BACKUP_DATABASE:-volund}
+retention_days=${VOLUND_BACKUP_RETENTION_DAYS:-14}
+temporary_dump=
+temporary_checksum=
+
+record_failure() {
+    psql --dbname "$database" --set ON_ERROR_STOP=1 --command \
+        "INSERT INTO volund.operational_components \
+         (component_key, last_outcome, last_failed_at) VALUES ('backup', 'failed', now()) \
+         ON CONFLICT (component_key) DO UPDATE SET last_outcome = 'failed', \
+         last_failed_at = now(), updated_at = now(); \
+         INSERT INTO volund.operational_log_events \
+         (severity, event_name, component, code, message) VALUES \
+         ('error', 'backup.failed', 'backup', 'backup_failed', 'backup failed safely')" \
+         >/dev/null 2>&1 || true
+    printf '{"timestamp":"%s","severity":"error","event":"backup.failed","component":"backup","code":"backup_failed","version":"%s","message":"backup failed safely"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${VOLUND_VERSION:-unknown}" >&2
+}
+
+cleanup() {
+    status=$?
+    if [ -n "$temporary_dump" ]; then
+        rm -f -- "$temporary_dump" "$temporary_checksum"
+    fi
+    if [ "$status" -ne 0 ]; then
+        record_failure
+    fi
+    exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+
+case "$backup_dir" in
+    /*) ;;
+    *) echo "backup_configuration_invalid" >&2; exit 2 ;;
+esac
+case "$retention_days" in
+    ''|*[!0-9]*) echo "backup_retention_invalid" >&2; exit 2 ;;
+esac
+
+test -d "$source_path"
+mkdir -p "$backup_dir"
+test ! -L "$backup_dir"
+
+source_device=$(findmnt -n -o SOURCE --target "$source_path")
+backup_device=$(findmnt -n -o SOURCE --target "$backup_dir")
+if [ -z "$source_device" ] || [ -z "$backup_device" ]; then
+    echo "backup_device_resolution_failed" >&2
+    exit 3
+fi
+if [ "$source_device" = "$backup_device" ]; then
+    echo "backup_device_isolation_failed" >&2
+    exit 3
+fi
+
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+name="volund-$timestamp"
+temporary_dump=$(mktemp "$backup_dir/.volund-XXXXXX.dump")
+temporary_checksum="$temporary_dump.sha256"
+final_dump="$backup_dir/$name.dump"
+final_checksum="$backup_dir/$name.sha256"
+
+pg_dump --dbname "$database" --format=custom --file "$temporary_dump"
+pg_restore --list "$temporary_dump" >/dev/null
+dump_hash=$(sha256sum "$temporary_dump" | awk '{print $1}')
+printf '%s  %s\n' "$dump_hash" "$name.dump" > "$temporary_checksum"
+mv -T -- "$temporary_dump" "$final_dump"
+mv -T -- "$temporary_checksum" "$final_checksum"
+
+psql --dbname "$database" --set ON_ERROR_STOP=1 --command \
+    "INSERT INTO volund.operational_components \
+     (component_key, last_outcome, last_succeeded_at) VALUES ('backup', 'success', now()) \
+     ON CONFLICT (component_key) DO UPDATE SET last_outcome = 'success', \
+     last_succeeded_at = now(), updated_at = now(); \
+     INSERT INTO volund.operational_log_events \
+     (severity, event_name, component, code, message) VALUES \
+     ('info', 'backup.completed', 'backup', 'backup_ok', 'validated backup published')" \
+     >/dev/null
+
+find "$backup_dir" -maxdepth 1 -type f \
+    \( -name 'volund-*.dump' -o -name 'volund-*.sha256' \) \
+    -mtime "+$retention_days" -delete
+
+printf '{"timestamp":"%s","severity":"info","event":"backup.completed","component":"backup","code":"backup_ok","version":"%s","message":"validated backup published"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${VOLUND_VERSION:-unknown}"

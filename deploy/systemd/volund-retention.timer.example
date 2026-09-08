@@ -1,0 +1,11 @@
+[Unit]
+Description=Run VÖLUND derived-data retention daily
+
+[Timer]
+OnCalendar=*-*-* 04:10:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+Unit=volund-retention.service
+
+[Install]
+WantedBy=timers.target

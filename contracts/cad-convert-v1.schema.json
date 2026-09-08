@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volund.invalid/contracts/cad-convert-v1.schema.json",
+  "title": "VÖLUND CAD conversion result v1",
+  "type": "object",
+  "required": ["contractVersion", "status", "source", "diagnostics"],
+  "properties": {
+    "contractVersion": { "const": 1 },
+    "status": { "enum": ["ready", "partial", "failed"] },
+    "source": {
+      "type": "object",
+      "required": ["sha256", "sizeBytes"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "format": { "enum": ["step", "iges", "brep", "stl", "3mf", "obj", "ply", "gltf", "glb"] }
+      },
+      "additionalProperties": false
+    },
+    "preview": {
+      "type": "object",
+      "required": ["glb", "triangleCount"],
+      "properties": {
+        "glb": { "type": "string" },
+        "triangleCount": { "type": "integer", "minimum": 0 },
+        "profile": { "enum": ["web", "fine"] },
+        "modelDiagonal": { "type": "number", "exclusiveMinimum": 0 },
+        "linearDeflection": { "type": "number", "exclusiveMinimum": 0 },
+        "angularDeflection": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "assembly": {
+      "type": "object",
+      "required": ["manifest", "definitionCount", "instanceCount"],
+      "properties": {
+        "manifest": { "type": "string" },
+        "definitionCount": { "type": "integer", "minimum": 0 },
+        "instanceCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "code", "message"],
+        "properties": {
+          "severity": { "enum": ["info", "warning", "error"] },
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,7 @@
+[Unit]
+Requires=volund-proxy-firewall.service
+After=volund-proxy-firewall.service
+
+[Service]
+Environment=VOLUND_LISTEN_ADDR=0.0.0.0:8080
+Environment=VOLUND_SECURE_COOKIES=true

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>VÖLUND Responsive-Prüfung</title>
+<style>body { margin: 12px; font: 14px system-ui; } iframe { border: 1px solid #888; display: block; margin-top: 12px; } pre { white-space: pre-wrap; } button, select { padding: 8px; }</style>
+<h1>Isolierte Responsive-Prüfung</h1>
+<p>Synthetische Daten, kein Backend. CSS-Viewport im Frame; kein Geräte- oder Zoomnachweis.</p>
+<label>Breite <select id="width"><option>320</option><option>390</option><option selected>704</option><option>720</option><option>721</option><option>1024</option><option>1440</option></select></label>
+<button id="run">Matrix prüfen</button>
+<pre id="result" role="status">Bereit</pre>
+<iframe id="surface" title="VÖLUND Prüfansicht" width="704" height="800" src="./responsive-surface.html"></iframe>
+<script type="module">
+const frame = document.querySelector('#surface');
+const width = document.querySelector('#width');
+width.onchange = () => { frame.width = width.value; };
+document.querySelector('#run').onclick = async () => {
+  document.documentElement.dataset.matrixComplete = 'false';
+  const results = [];
+  const query = new URLSearchParams(location.search);
+  for (const size of query.has('width') ? [Number(query.get('width'))] : [320, 390, 704, 720, 721, 1024, 1440]) {
+    frame.width = size;
+    for (const view of query.has('view') ? [query.get('view')] : ['dashboard', 'models', 'collections', 'tags', 'authors', 'imports', 'import-history', 'administration', 'model', 'model-problems', 'raw']) {
+      await new Promise(resolve => { frame.onload = resolve; frame.src = `./responsive-surface.html?view=${view}&model=00000000-0000-4000-8000-000000000001`; });
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (frame.contentDocument.querySelector('.app-nav') && !frame.contentDocument.querySelector('.loading-copy')) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      const doc = frame.contentDocument;
+      const nav = doc.querySelector('.app-nav');
+      if (!nav) throw new Error(`Anwendung nicht bereit: ${size} ${view}`);
+      const page = doc.querySelector('.page-scroll, .catalog-panel');
+      const style = frame.contentWindow.getComputedStyle(nav);
+      const hint = doc.querySelector('.nav-scroll-hint');
+      const indicated = nav.scrollWidth <= nav.clientWidth + 1 || (hint && frame.contentWindow.getComputedStyle(hint).display !== 'none');
+      const overflow = page ? page.scrollWidth - page.clientWidth : -1;
+      const header = doc.querySelector('.topbar');
+      const headerOverflow = header.scrollWidth - header.clientWidth;
+      if (doc.documentElement.dataset.fixtureError) throw new Error(`Fixture fehlt: ${doc.documentElement.dataset.fixtureError}`);
+      const failed = !indicated || overflow > 1 || headerOverflow > 1 || !page;
+      results.push(`${failed ? 'FEHLER' : 'OK'} ${size} ${view}: Inhaltüberlauf=${overflow}px; Kopf=${headerOverflow}px; Navigation=${nav.scrollWidth}/${nav.clientWidth}; Hinweis=${Boolean(indicated)}; Scrollmodus=${style.overflowX}`);
+      document.querySelector('#result').textContent = results.join('\n');
+      if (overflow > 1) {
+        results.push('Überstehend: ' + [...page.querySelectorAll('*')].filter(el => el.getBoundingClientRect().right > page.getBoundingClientRect().right + 1).slice(0,8).map(el => `${el.tagName}.${el.className}`).join(', '));
+      }
+      if (view === 'administration') {
+        for (const button of doc.querySelectorAll('[data-admin-area]')) {
+          button.click();
+          const delta = page.scrollWidth - page.clientWidth;
+          results.push(`${delta > 1 ? 'FEHLER' : 'OK'} ${size} Administration ${button.textContent}: Inhaltüberlauf=${delta}px`);
+        }
+      }
+    }
+  }
+  document.querySelector('#result').textContent = results.join('\n');
+  document.documentElement.dataset.matrixComplete = 'true';
+  frame.width = width.value;
+  frame.src = './responsive-surface.html?view=dashboard';
+};
+</script>
+</html>
