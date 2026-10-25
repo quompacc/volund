@@ -14,11 +14,24 @@ until a signed release tag is created.
   Auswahl wird pro Browser gespeichert; „System“ folgt der Betriebssystem-
   Einstellung, und der 3D-Viewer mit Hintergrund „System“ folgt dem gewählten
   Seitenthema.
+- Eigenes Vorschaubild hochladen: Im Vorschaubild-Panel eines Modells lädt
+  „Neues Bild hochladen“ ein PNG-, JPEG-, GIF- oder WebP-Bild über den
+  regulären Erweiterungsimport (Eingangsspeicher, SHA-256, Prüfung, atomare
+  Übernahme) hoch und setzt es im selben Commit als Vorschaubild. Beim Import
+  eines neuen Modells kann neben der Vorschaubild-Auswahl ein Bild außerhalb des
+  Pakets gewählt werden; es wird nach der Übernahme ergänzt. Würde das Bild eine
+  vorhandene Bibliotheksdatei verschieben oder kollidieren, bricht der Vorgang
+  ab und verwirft seinen Entwurf.
 - `VOLUND_API_PROXY` setzt das API-Ziel des Vite-Dev-Servers, etwa für einen
   Tunnel zu einer Testinstanz. Mit `VOLUND_API_SECURE_COOKIES=true` schreibt
   der Proxy nur die eigene `http`-Herkunft des Dev-Servers auf `https` um, damit
   Instanzen mit Secure-Cookies die Herkunftsprüfung akzeptieren; fremde
   Herkünfte bleiben abgelehnt.
+
+### Fixed
+
+- Die Tag-Vorschläge im Importformular klappen nicht mehr von selbst auf, sobald
+  die Tag-Liste geladen ist, sondern erst, wenn das Tag-Feld fokussiert ist.
 
 ### Changed
 

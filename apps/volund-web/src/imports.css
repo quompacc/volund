@@ -74,7 +74,7 @@
 .import-metadata textarea { resize: vertical; line-height: 1.5; }
 .import-metadata input:focus, .import-metadata select:focus, .import-metadata textarea:focus { border-color: var(--accent); }
 .import-metadata label small { color: var(--text-muted); font-weight: 400; }
-.import-target-field, .import-source-field { min-width: 0; display: grid; align-content: start; gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); }
+.import-target-field, .import-source-field { min-width: 0; display: grid; align-self: start; align-content: start; gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); }
 .import-target-field legend, .import-source-field legend { padding: 0 5px; color: var(--text-muted); font-size: 12px; font-weight: 600; }
 .import-collection-field { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
 .import-collection-field legend { margin-bottom: 6px; color: var(--text); font-weight: 500; }

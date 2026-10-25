@@ -1,7 +1,7 @@
 import { formatBytes } from "./format";
 import { importErrorMessage } from "./import-errors";
 import { reviewActionLabel, reviewTotalFiles, uploadPercentage } from "./import-view-helpers";
-import type { ImportReview, ImportReviewItem } from "./types";
+import type { ImportDraft, ImportReview, ImportReviewItem } from "./types";
 
 export function renderImportReview(host: HTMLElement, review: ImportReview): void {
   const totalFiles = reviewTotalFiles(review);
@@ -95,4 +95,15 @@ function draftButton(label: string, action: string, draftId: string): HTMLButton
   button.dataset.draftAction = action;
   button.dataset.draftId = draftId;
   return button;
+}
+
+export function importItemRow(item: ImportDraft["items"][number]): HTMLElement {
+  const row = document.createElement("article");
+  row.className = item.isPrimaryCandidate ? "primary-candidate" : "";
+  row.innerHTML = `<span class="import-category"></span><span><strong></strong><small></small></span><b></b>`;
+  row.querySelector(".import-category")!.textContent = item.category.toUpperCase();
+  row.querySelector("strong")!.textContent = item.originalPath;
+  row.querySelector("small")!.textContent = item.suggestedRelativePath;
+  row.querySelector("b")!.textContent = item.isPrimaryCandidate ? "PRIMÄR-CAD" : formatBytes(item.byteSize);
+  return row;
 }

@@ -2,6 +2,7 @@ import { catalogApi } from "./api";
 import { formatBytes } from "./format";
 import { historyDetails } from "./catalog-history";
 import type { ModelProblem } from "./problem-types";
+import { THUMBNAIL_UPLOAD_ACCEPT } from "./thumbnail-upload";
 import type { ModelFile, ModelSummary, SlicerTarget, ThumbnailCandidate } from "./types";
 
 export function modelCardMarkup(model: ModelSummary): string {
@@ -33,7 +34,7 @@ export function thumbnailPanelMarkup(model: ModelSummary, candidates: ThumbnailC
   const unavailable = model.thumbnail.kind === "source-file" && selected && !imageCandidates.some((candidate) => candidate.id === selected)
     ? `<option value="${escapeMarkup(`${model.thumbnail.kind}|${selected}`)}" selected disabled>Ausgewählte Quelle ist nicht verfügbar</option>` : "";
   const options = imageCandidates.map((candidate) => `<option value="${escapeMarkup(`${candidate.kind}|${candidate.id}`)}"${candidate.id === selected ? " selected" : ""}>Bilddatei · ${escapeMarkup(candidate.label)}</option>`).join("");
-  return `<section class="thumbnail-panel"><p class="eyebrow">VORSCHAUBILD</p>${visual}<form id="thumbnail-form"><label>Vorschaubild<select class="thumbnail-select" name="thumbnail"><option value=""${model.thumbnail.kind === "default" || model.thumbnail.status === "generated" ? " selected" : ""}>Neutralen Platzhalter verwenden</option>${unavailable}${options}</select></label><button class="secondary-action">Auswahl speichern</button><p id="thumbnail-status" class="form-message" aria-live="polite" tabindex="-1">${imageCandidates.length === 0 ? "Dem Modell ist noch keine verwendbare Bilddatei zugeordnet." : ""}</p></form></section>`;
+  return `<section class="thumbnail-panel"><p class="eyebrow">VORSCHAUBILD</p>${visual}<form id="thumbnail-form"><label>Vorschaubild<select class="thumbnail-select" name="thumbnail"><option value=""${model.thumbnail.kind === "default" || model.thumbnail.status === "generated" ? " selected" : ""}>Neutralen Platzhalter verwenden</option>${unavailable}${options}</select></label><button class="secondary-action">Auswahl speichern</button><p id="thumbnail-status" class="form-message" aria-live="polite" tabindex="-1">${imageCandidates.length === 0 ? "Dem Modell ist noch keine verwendbare Bilddatei zugeordnet." : ""}</p></form><div class="thumbnail-upload"><label class="secondary-action"><span class="icon icon-upload" aria-hidden="true"></span>Neues Bild hochladen<input id="thumbnail-upload" type="file" accept="${THUMBNAIL_UPLOAD_ACCEPT}"></label><p id="thumbnail-upload-status" class="form-message" aria-live="polite" tabindex="-1">Wird dem Modell als Bilddatei hinzugefügt und direkt als Vorschaubild gesetzt.</p></div></section>`;
 }
 
 export type ModelFileFilter = "all" | "step" | "stl" | "images" | "documents" | "other";

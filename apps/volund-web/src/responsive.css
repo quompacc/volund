@@ -26,3 +26,9 @@
 .history-list li div { display: grid; gap: 4px; }
 .history-list strong { color: var(--paper); font-weight: 600; }
 .history-list span, .history-list p { margin: 0; color: var(--muted); line-height: 1.5; }
+.thumbnail-upload, .thumbnail-upload-pick { display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.thumbnail-panel .thumbnail-upload label, .import-source-field .thumbnail-upload-pick label { position: relative; display: inline-flex; cursor: pointer; }
+.thumbnail-upload input[type="file"], .thumbnail-upload-pick input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.thumbnail-upload label:focus-within, .thumbnail-upload-pick label:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.thumbnail-upload .form-message, .thumbnail-upload-pick .form-message { color: var(--text-muted); }
+.thumbnail-upload .form-message.error, .thumbnail-upload-pick .form-message.error { color: var(--danger); }

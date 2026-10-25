@@ -82,6 +82,28 @@ describe("browser import manifests", () => {
     expect(host.textContent).not.toContain("deterministisches Rasterbild");
   });
 
+  it("keeps tag suggestions closed until the tag field is focused", async () => {
+    vi.spyOn(catalogApi, "collections").mockResolvedValue([]);
+    vi.spyOn(catalogApi, "roots").mockResolvedValue([]);
+    vi.spyOn(catalogApi, "models").mockResolvedValue([{ id: "model-1", name: "Testmodell", revision: 1 }] as Awaited<ReturnType<typeof catalogApi.models>>);
+    vi.spyOn(catalogApi, "authors").mockResolvedValue({ items: [], total: 0, limit: 100, offset: 0 });
+    vi.spyOn(catalogApi, "tags").mockResolvedValue({ items: [{ name: "Voron", active: true }], total: 1, limit: 100, offset: 0 } as Awaited<ReturnType<typeof catalogApi.tags>>);
+    vi.spyOn(identityApi, "settings").mockResolvedValue([]);
+    const host = document.createElement("main");
+    document.body.append(host);
+    mountImports(host, () => undefined);
+    await vi.waitFor(() => expect(catalogApi.tags).toHaveBeenCalled());
+    await Promise.resolve();
+    const suggestions = host.querySelector<HTMLElement>("#metadata-tag-suggestions")!;
+    const input = host.querySelector<HTMLInputElement>("#metadata-tags")!;
+    expect(suggestions.hidden).toBe(true);
+    expect(input.getAttribute("aria-expanded")).toBe("false");
+    input.focus();
+    expect(suggestions.hidden).toBe(false);
+    expect(suggestions.textContent).toContain("Voron");
+    host.remove();
+  });
+
   it("resolves a file conflict through the in-page target dialog", async () => {
     vi.spyOn(catalogApi, "collections").mockResolvedValue([]);
     vi.spyOn(catalogApi, "roots").mockResolvedValue([]);

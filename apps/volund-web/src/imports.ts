@@ -3,7 +3,8 @@ import { formatBytes } from "./format";
 import { createImportConflictDialog } from "./import-conflict-dialog";
 import { importErrorMessage } from "./import-errors";
 import { appendTags, buildMetadataRequest, suggestedTags } from "./import-metadata";
-import { renderImportReview, showUploadError, updateUploadProgress } from "./import-review-renderer";
+import { importItemRow, renderImportReview, showUploadError, updateUploadProgress } from "./import-review-renderer";
+import { draftThumbnailItemId, importThumbnailPickerMarkup, mountImportThumbnailChoice, type ImportThumbnailChoice } from "./import-thumbnail-choice";
 import { loadDraftInventory } from "./import-drafts";
 import { extensionTarget, importSourceName, importStageLabel, reviewActionLabel, reviewTotalFiles, selectedFilePath, selectedManifest, uploadPercentage } from "./import-view-helpers";
 import { settingString } from "./preferences";
@@ -57,8 +58,9 @@ export function mountImports(host: HTMLElement, openModel: (modelId: string) => 
   host.querySelector<HTMLSelectElement>("#metadata-kind")!.closest("label")!.after(targetField);
   const sourceField = document.createElement("fieldset");
   sourceField.className = "import-source-field";
-  sourceField.innerHTML = `<legend>Dateirollen</legend><label>Primärquelle<select id="metadata-primary"><option value="">Automatischer Vorschlag</option></select></label><label>Vorschaubild<select id="metadata-thumbnail"><option value="">Neutraler Platzhalter</option></select><small>Wähle eine echte Bilddatei aus dem Import. Ohne Auswahl bleibt das Modellbild neutral.</small></label><label>Lizenz<select id="metadata-license-kind"><option value="not-specified">Nicht angegeben</option><option value="spdx">SPDX</option><option value="custom">Benutzerdefiniert</option></select></label><label id="metadata-license-value-label" hidden>Lizenzwert<input id="metadata-license-value" maxlength="160"></label></fieldset>`;
+  sourceField.innerHTML = `<legend>Dateirollen</legend><label>Primärquelle<select id="metadata-primary"><option value="">Automatischer Vorschlag</option></select></label><label>Vorschaubild<select id="metadata-thumbnail"><option value="">Neutraler Platzhalter</option></select><small>Wähle eine echte Bilddatei aus dem Import. Ohne Auswahl bleibt das Modellbild neutral.</small></label>${importThumbnailPickerMarkup()}<label>Lizenz<select id="metadata-license-kind"><option value="not-specified">Nicht angegeben</option><option value="spdx">SPDX</option><option value="custom">Benutzerdefiniert</option></select></label><label id="metadata-license-value-label" hidden>Lizenzwert<input id="metadata-license-value" maxlength="160"></label></fieldset>`;
   collectionField.after(sourceField);
+  const thumbnailChoice = mountImportThumbnailChoice(host);
   let selectedTags: string[] = [];
   let availableTagNames: string[] = [];
   let selectedCollectionIds = new Set<string>();
@@ -165,8 +167,8 @@ export function mountImports(host: HTMLElement, openModel: (modelId: string) => 
       option.textContent = tag;
       return option;
     }));
-    tagSuggestionList.hidden = matches.length === 0;
-    tagInput.setAttribute("aria-expanded", String(matches.length > 0));
+    tagSuggestionList.hidden = matches.length === 0 || document.activeElement !== tagInput;
+    tagInput.setAttribute("aria-expanded", String(!tagSuggestionList.hidden));
   };
   const acceptTags = (): void => {
     selectedTags = appendTags(selectedTags, tagInput.value);
@@ -227,6 +229,7 @@ export function mountImports(host: HTMLElement, openModel: (modelId: string) => 
         resumeDraft = null;
       } else currentDraft = await catalogApi.previewImport(importSourceName(entries), entries);
       renderImportDraft(host, currentDraft);
+      thumbnailChoice.reset();
       host.querySelector<HTMLSelectElement>("#metadata-kind")!.value = defaultModelKind;
       applyQueuedExtension();
       syncImportTarget();
@@ -329,7 +332,7 @@ export function mountImports(host: HTMLElement, openModel: (modelId: string) => 
   });
   host.querySelector<HTMLButtonElement>("#commit-import")!.addEventListener("click", () => {
     const draftId = host.querySelector<HTMLElement>("#import-review")!.dataset.draftId;
-    if (draftId) void confirmImport(host, draftId);
+    if (draftId) void confirmImport(host, draftId, thumbnailChoice);
   });
   host.querySelector<HTMLElement>("#review-items")!.addEventListener("click", async (event) => {
     const button=(event.target as HTMLElement).closest<HTMLButtonElement>("button[data-resolution]");
@@ -477,7 +480,7 @@ async function saveMetadata(
       licenseKind: host.querySelector<HTMLSelectElement>("#metadata-license-kind")!.value as "not-specified"|"spdx"|"custom",
       licenseValue: host.querySelector<HTMLInputElement>("#metadata-license-value")!.value,
       primaryItemId: host.querySelector<HTMLSelectElement>("#metadata-primary")!.value || null,
-      thumbnailItemId: host.querySelector<HTMLSelectElement>("#metadata-thumbnail")!.value || null,
+      thumbnailItemId: draftThumbnailItemId(host.querySelector<HTMLSelectElement>("#metadata-thumbnail")!.value),
     });
     button.disabled = true;
     button.textContent = "Upload wird vorbereitet …";
@@ -557,7 +560,7 @@ async function showImportReview(host: HTMLElement, draftId: string): Promise<voi
   renderImportReview(host, review);
 }
 
-async function confirmImport(host: HTMLElement, draftId: string): Promise<void> {
+async function confirmImport(host: HTMLElement, draftId: string, thumbnailChoice: ImportThumbnailChoice): Promise<void> {
   const button = host.querySelector<HTMLButtonElement>("#commit-import")!;
   const error = host.querySelector<HTMLElement>("#review-error")!;
   button.disabled = true;
@@ -572,23 +575,13 @@ async function confirmImport(host: HTMLElement, draftId: string): Promise<void> 
     host.querySelector<HTMLButtonElement>("#open-model")!.hidden = false;
     host.querySelector<HTMLButtonElement>("#open-model")!.dataset.modelId = result.modelId;
     host.querySelector<HTMLElement>("#review-items")!.classList.add("committed");
+    await thumbnailChoice.applyAfterCommit(result);
   } catch (reason) {
     error.textContent = importErrorMessage(reason instanceof Error ? reason.message : "Import konnte nicht bestätigt werden.");
     error.hidden = false;
     button.disabled = false;
     button.textContent = "Import erneut versuchen";
   }
-}
-
-function importItemRow(item: ImportDraft["items"][number]): HTMLElement {
-  const row = document.createElement("article");
-  row.className = item.isPrimaryCandidate ? "primary-candidate" : "";
-  row.innerHTML = `<span class="import-category"></span><span><strong></strong><small></small></span><b></b>`;
-  row.querySelector(".import-category")!.textContent = item.category.toUpperCase();
-  row.querySelector("strong")!.textContent = item.originalPath;
-  row.querySelector("small")!.textContent = item.suggestedRelativePath;
-  row.querySelector("b")!.textContent = item.isPrimaryCandidate ? "PRIMÄR-CAD" : formatBytes(item.byteSize);
-  return row;
 }
 
 function showImportError(host: HTMLElement, message: string): void {

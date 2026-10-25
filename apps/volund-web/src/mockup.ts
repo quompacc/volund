@@ -14,6 +14,7 @@ import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilterOptions, m
 import { PdfViewer, pdfViewerMarkup } from "./pdf-viewer";
 import { preferredModelFile, settingString } from "./preferences";
 import type { Artifact, ModelFile, ModelSummary } from "./types";
+import { mountThumbnailActions } from "./thumbnail-actions";
 import { CadViewer, restoreViewerStage } from "./viewer";
 
 type Navigate = (view: AppView, modelId?: string) => void;
@@ -127,25 +128,6 @@ function mountModelProblems(host: HTMLElement, modelId: string | null, canEdit: 
   }).catch((error: Error) => showCatalogError(host, error.message));
 }
 
-function mountThumbnailActions(host: HTMLElement, model: ModelSummary): void {
-  host.querySelector<HTMLFormElement>("#thumbnail-form")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget as HTMLFormElement;
-    const status = form.querySelector<HTMLElement>("#thumbnail-status")!;
-    const button = form.querySelector<HTMLButtonElement>("button")!;
-    const value = String(new FormData(form).get("thumbnail") || "");
-    const [kind, candidateId] = value ? value.split("|", 2) : ["default", null];
-    button.disabled = true; status.classList.remove("error"); status.textContent = "Auswahl wird gespeichert …";
-    try {
-      await catalogApi.updateThumbnail(model, kind as ModelSummary["thumbnail"]["kind"], candidateId);
-      status.textContent = "Vorschaubild gespeichert.";
-      window.location.reload();
-    } catch (error) {
-      status.classList.add("error"); status.textContent = error instanceof Error ? error.message : "Vorschaubild konnte nicht gespeichert werden."; status.focus();
-    } finally { button.disabled = false; }
-  });
-}
-
 function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<() => void>, canEdit: boolean, canManageLifecycle: boolean, navigate: Navigate): void {
   let viewer: CadViewer | undefined;
   let pdfViewer: PdfViewer | undefined;
@@ -224,7 +206,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
       });
       if (canEdit) {
         mountModelEditor(host, model, collectionsCatalog, files, tagsCatalog.items, () => window.location.reload());
-        mountThumbnailActions(host, model);
+        mountThumbnailActions(host, model, files);
         const startExtension = (selected: ArrayLike<File>): void => {
           if (selected.length === 0) return;
           queueModelExtension(model, selected);
