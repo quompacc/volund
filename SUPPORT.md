@@ -47,14 +47,18 @@ catalog does not guarantee a generated 3D preview.
 - Worker leases, immediate recovery of lost jobs, orderly SIGTERM stop,
   lock-aware conversion timeouts, and orphaned-directory cleanup are
   implemented and covered by Linux integration tests with real worker
-  processes (ADR 0030). Their acceptance under systemd on a production host
-  belongs to the J.2–J.4 operations acceptance.
+  processes (ADR 0030), and a systemd stop mid-conversion is part of the
+  boot probe below.
 - The complete slicer handoff safety and unavailable-target behavior remain
   under G.4.
-- Candidate upgrade/rollback, systemd boot, and external proxy acceptance remain
-  under J.2–J.4. Clean installation (J.1) passed for 0.39.0 in an empty Debian 13
-  rootfs. The tagged deployment history does not close any gate for current
-  `Unreleased` changes.
+- The J.2–J.4 boot probe (`deploy/debian/tests/boot-probe.py`) passed on
+  2026-10-25 for v0.39.0 → current `main` → v0.39.0 in a freshly bootstrapped,
+  booted Debian 13 container: runbook installation, systemd boot and reboot,
+  Caddy TLS proxy with the nftables upstream restriction, a real OCCT preview,
+  upgrade, worker stop mid-conversion, and rollback. It runs in a container on
+  a development host, not on a production LXC; the operator's production
+  upgrade remains a separate step. Clean installation (J.1) passed for 0.39.0
+  in an empty Debian 13 rootfs.
 - VÖLUND is designed for a single instance and a small trusted team. Public
   multi-tenant SaaS operation is outside the current security model.
 - No independent security review has been completed.

@@ -390,6 +390,56 @@ Prüfbaum samt Archiven entfernen. Ein fehlgeschlagenes Rootfs wird nicht als
 frische Installation wiederverwendet; die vollständige Provisionierung beginnt
 erneut leer. Vorbestehende Caches, Builds und Testverzeichnisse bleiben erhalten.
 
+## Boot-, Proxy-, Upgrade- und Rückwegprobe (J.2–J.4)
+
+`tests/boot-probe.py` bootet ein frisches Debian-13-Rootfs mit echtem systemd
+als Container (`systemd-nspawn --boot`, kein Docker) und prüft darin den
+installierten Betrieb. `tests/boot-guest.py` ist die Gastseite und wird nur im
+markierten Rootfs ausgeführt. Benötigt werden auf einem ausdrücklich
+freigegebenen Prüfhost Root-Rechte, `debootstrap`, `systemd-nspawn`,
+`systemd-machined` und Internetzugriff auf den Debian-Spiegel und crates.io.
+
+Vorbereiten: ein neues Verzeichnis `/var/tmp/volund-j3-<Ziffern>` mit
+`old-source.tar` (`git archive` des Vorgänger-Tags), `source.tar` (Kandidat)
+sowie `old-web.tar` und `web.tar` mit dem Inhalt des jeweils gebauten `dist/`.
+Danach:
+
+```sh
+sudo python3 deploy/debian/tests/boot-probe.py /var/tmp/volund-j3-202610251857
+```
+
+Die Probe
+
+1. installiert die Paketblöcke dieser Anleitung sowie Caddy und nftables, baut
+   beide Stände mit `--locked` samt CTests und installiert den Vorgängerstand
+   mit den originalen Konto-, Cluster-, Bootstrap-, Migrations- und Unitblöcken;
+2. richtet den Proxybetrieb aus `deploy/` ein: Firewall-Unit und
+   nftables-Regel mit der Proxyadresse, Drop-in `volundd-proxy.conf` mit
+   Nicht-Loopback-Listener und sicheren Cookies, Caddy mit TLS vor `volundd`;
+3. bootet und verlangt `systemctl is-system-running` = `running`, aktive
+   Dienste und Timer, eine vor `volundd` aktive Firewall und einen
+   ausgelösten Vorschau-Timer;
+4. legt vom Host aus über HTTPS, geprüft gegen die Caddy-CA, den Owner an,
+   meldet sich an, registriert eine Bibliothek, scannt sie und erzeugt eine
+   echte OCCT-Vorschau im Sandbox-Worker. Ein direkter Zugriff auf Port 8080
+   aus dem Hostnetz muss scheitern;
+5. startet neu und verlangt denselben Zustand und Katalog;
+6. stellt auf den Kandidaten um (Migration und `database-doctor` vorab),
+   bootet, vergleicht den Katalog und stoppt den Vorschau-Worker per
+   `systemctl stop` mitten in einer Konvertierung. Der Job muss mit Versuch 2
+   wieder eingereiht, die Unit erfolgreich beendet und ohne Restprozesse sein;
+   danach schließt der Timer den Job ab (ADR 0030);
+7. stellt auf den Vorgängerstand zurück und verlangt den Katalog des
+   Kandidaten unverändert.
+
+Der Rückweg ist ohne Datenbankrestore gültig, solange zwischen beiden Ständen
+keine Migration liegt. Mit neuen Migrationen gilt der vollständige Rückweg aus
+„Upgrade and full rollback“, den `tests/upgrade-rehearsal.py` probt. Die Probe
+greift auf keinen Hostdienst und keine Hostdaten zu; der Container hat nur
+einen privaten veth-Link (`10.231.0.0/30`). Nach `PASS` bleibt das Rootfs zur
+Einsicht liegen und wird danach ausschließlich unter dem exakten Probenpfad
+entfernt.
+
 ## Isolierte Lastprobe für kleine Teams
 
 `tests/team-load.py` misst ein festes, leselastiges Profil mit acht parallelen

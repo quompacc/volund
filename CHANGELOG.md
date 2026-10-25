@@ -10,6 +10,12 @@ until a signed release tag is created.
 
 ### Added
 
+- Boot-, Proxy-, Upgrade- und Rückwegprobe für J.2–J.4
+  (`deploy/debian/tests/boot-probe.py`): bootet ein frisches Debian-13-Rootfs
+  mit echtem systemd per `systemd-nspawn`, installiert nach dem Runbook, prüft
+  Caddy-TLS-Proxy, nftables-Sperre und Firewall-Reihenfolge, eine echte
+  OCCT-Vorschau, Neustart, Upgrade, `systemctl stop` mitten in einer
+  Konvertierung und Rollback.
 - `deploy/backup/volund-restore` spielt einen geprüften Backup-Dump in eine
   leere Ersatzdatenbank ein: Prüfsumme und Archiv werden vorab verifiziert,
   belegte Zieldatenbanken abgewiesen, der Restore läuft in einer Transaktion.
