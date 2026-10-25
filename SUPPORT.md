@@ -34,6 +34,9 @@ catalog does not guarantee a generated 3D preview.
 
 ## Known limitations
 
+- Restoring a backup into an empty replacement database is scripted
+  (`volund-restore`) and rehearsed in CI; a complete clean-host restore of a
+  production instance has not been accepted yet.
 - Model packages and the versioned catalog metadata export are available
   (docs/EXPORT.md). A single whole-instance package including originals and the
   re-import of a metadata export into a new instance are not implemented.

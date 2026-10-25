@@ -1,0 +1,69 @@
+#!/bin/sh
+# Restore a verified VÖLUND backup dump into an EMPTY PostgreSQL database.
+#
+# Usage: volund-restore <volund-YYYYMMDDTHHMMSSZ.dump> <target-database>
+#
+# The dump must sit next to the .sha256 manifest written by volund-backup. The
+# target database must already exist and contain no user tables; the restore
+# never drops, cleans, or overwrites existing objects. Connection settings come
+# from libpq (peer authentication as the volund user, or PGHOST/PGUSER/...).
+# VOLUND_RESTORE_ROLE optionally sets the role that owns restored objects.
+set -eu
+
+umask 077
+
+fail() {
+    printf '{"timestamp":"%s","severity":"error","event":"restore.failed","component":"restore","code":"%s"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >&2
+    exit "$2"
+}
+
+[ "$#" -eq 2 ] || fail restore_usage 2
+dump=$1
+target=$2
+case "$target" in
+    ''|*[!A-Za-z0-9_]*) fail restore_target_invalid 2 ;;
+esac
+case "$dump" in
+    *.dump) ;;
+    *) fail restore_dump_name_invalid 2 ;;
+esac
+[ -f "$dump" ] && [ ! -L "$dump" ] || fail restore_dump_missing 3
+
+directory=$(dirname -- "$dump")
+name=$(basename -- "$dump")
+manifest="$directory/${name%.dump}.sha256"
+[ -f "$manifest" ] && [ ! -L "$manifest" ] || fail restore_checksum_missing 3
+expected=$(awk -v name="$name" '$2 == name { print $1 }' "$manifest")
+[ -n "$expected" ] || fail restore_checksum_missing 3
+actual=$(sha256sum -- "$dump" | awk '{print $1}')
+[ "$expected" = "$actual" ] || fail restore_checksum_failed 3
+pg_restore --list -- "$dump" >/dev/null 2>&1 || fail restore_dump_invalid 3
+
+existing=$(psql --dbname "$target" --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --command \
+    "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace \
+     WHERE c.relkind IN ('r','p','v','m','S') \
+     AND n.nspname NOT IN ('pg_catalog','information_schema') \
+     AND n.nspname NOT LIKE 'pg\_toast%' AND n.nspname NOT LIKE 'pg\_temp%'" 2>/dev/null) \
+    || fail restore_target_unavailable 4
+[ "$existing" = 0 ] || fail restore_target_not_empty 4
+
+if [ -n "${VOLUND_RESTORE_ROLE:-}" ]; then
+    case "$VOLUND_RESTORE_ROLE" in
+        *[!A-Za-z0-9_]*) fail restore_role_invalid 2 ;;
+    esac
+    pg_restore --dbname "$target" --exit-on-error --single-transaction --no-owner \
+        --role "$VOLUND_RESTORE_ROLE" -- "$dump" || fail restore_apply_failed 5
+else
+    pg_restore --dbname "$target" --exit-on-error --single-transaction --no-owner \
+        -- "$dump" || fail restore_apply_failed 5
+fi
+
+summary=$(psql --dbname "$target" --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --command \
+    "SELECT (SELECT count(*) FROM public._sqlx_migrations WHERE success) || ' ' || \
+            (SELECT count(*) FROM volund.models) || ' ' || \
+            (SELECT count(*) FROM volund.source_files) || ' ' || \
+            (SELECT count(*) FROM volund.library_roots)") || fail restore_verification_failed 6
+set -- $summary
+printf '{"timestamp":"%s","severity":"info","event":"restore.completed","component":"restore","code":"restore_ok","migrations":%s,"models":%s,"sourceFiles":%s,"libraryRoots":%s}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4"

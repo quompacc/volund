@@ -10,6 +10,12 @@ until a signed release tag is created.
 
 ### Added
 
+- `deploy/backup/volund-restore` spielt einen geprüften Backup-Dump in eine
+  leere Ersatzdatenbank ein: Prüfsumme und Archiv werden vorab verifiziert,
+  belegte Zieldatenbanken abgewiesen, der Restore läuft in einer Transaktion.
+  Ein Linux-Integrationstest probt Sicherung und Restore mit echtem
+  `pg_dump`/`pg_restore` und verlangt einen identischen, betriebsbereiten
+  Katalog. BACKUP.md enthält das Runbook für eine Ersatzinstanz.
 - Portabler Export nach ADR 0029: „Exportieren“ auf jeder Modellseite liefert
   ein ZIP mit allen verfügbaren Originalen unter `originals/<root>/<pfad>`,
   `SHA256SUMS` und einem versionierten `manifest.json`

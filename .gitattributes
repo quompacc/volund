@@ -17,6 +17,7 @@
 *.service text eol=lf
 *.service.example text eol=lf
 deploy/backup/volund-backup text eol=lf
+deploy/backup/volund-restore text eol=lf
 CMakeLists.txt text eol=lf
 
 # Lizenztexte bleiben auch unter Windows bytegleich mit den LF-Prüfsummen.

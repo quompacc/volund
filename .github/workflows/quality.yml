@@ -64,6 +64,7 @@ jobs:
           test -x apps/volundd/tests/slow-converter.sh
           test -x deploy/backup/tests/backup-test.sh
           test -x deploy/backup/volund-backup
+          test -x deploy/backup/volund-restore
 
       - name: Enforce handwritten file line limit
         run: sh scripts/check-line-limit.sh
