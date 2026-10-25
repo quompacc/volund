@@ -7,6 +7,8 @@ use crate::job_lease::{self, Lease};
 
 /// Diagnostic recorded on a conversion whose worker vanished mid-run.
 pub(crate) const WORKER_LOST: &str = "conversion worker stopped before completion";
+/// Worker stops tolerated before an interrupted conversion fails instead.
+const MAX_STOPPED_ATTEMPTS: i32 = 3;
 
 pub(crate) struct ClaimedRun {
     pub(crate) id: i64,
@@ -118,4 +120,36 @@ pub(crate) async fn claim_next(pool: &PgPool) -> Result<Option<(ClaimedRun, Leas
         .await
         .map_err(|error| format!("cannot commit preview claim: {error}"))?;
     Ok(Some((run, lease)))
+}
+
+/// Hand a conversion interrupted by an orderly worker stop back to the queue.
+///
+/// The attempt counter bounds the requeues, so a conversion that keeps running
+/// into a service stop (for example the unit's start timeout) eventually fails.
+/// Returns the run's new status.
+pub(crate) async fn requeue_stopped(lease: &mut Lease, id: i64) -> Result<String, String> {
+    let requeued = json!([{ "message": "conversion worker stopped; conversion requeued" }]);
+    let failed = json!([{ "message": "conversion worker stopped repeatedly; conversion failed" }]);
+    sqlx::query_scalar(
+        "UPDATE volund.conversion_runs SET \
+         status = CASE WHEN cancellation_requested_at IS NOT NULL THEN 'cancelled' \
+          WHEN attempt >= $2 THEN 'failed' ELSE 'queued' END, \
+         attempt = CASE WHEN cancellation_requested_at IS NULL AND attempt < $2 \
+          THEN attempt + 1 ELSE attempt END, \
+         started_at = CASE WHEN cancellation_requested_at IS NULL AND attempt < $2 \
+          THEN NULL ELSE started_at END, \
+         finished_at = CASE WHEN cancellation_requested_at IS NULL AND attempt < $2 \
+          THEN NULL ELSE now() END, \
+         diagnostics = CASE WHEN cancellation_requested_at IS NOT NULL THEN '[]'::jsonb \
+          WHEN attempt >= $2 THEN $3::jsonb ELSE $4::jsonb END \
+         WHERE id = $1 AND status = 'running' RETURNING status",
+    )
+    .bind(id)
+    .bind(MAX_STOPPED_ATTEMPTS)
+    .bind(failed.to_string())
+    .bind(requeued.to_string())
+    .fetch_optional(lease.connection())
+    .await
+    .map_err(|error| format!("cannot requeue stopped preview job: {error}"))
+    .map(|status| status.unwrap_or_else(|| "lost".to_owned()))
 }

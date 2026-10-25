@@ -46,6 +46,19 @@ is not, the worker publishes no artifacts, rolls back its catalog changes, and
 reports the run as `lost`. When one task in a worker batch fails, its sibling
 tasks still finish; previously they were aborted, which orphaned their claims.
 
+### Orderly stop
+
+The workers handle SIGTERM and SIGINT. A stop drops the running job's future,
+which kills the converter's process group or abandons the uncommitted scan
+transaction. The worker then requeues the job on its still-open lease
+connection. A stop is not the job's fault, but a job that keeps running into a
+stop, for example the unit's `TimeoutStartSec`, must not loop forever. Each
+requeue therefore increments `attempt`, and the third stop fails the job. The
+units use `KillMode=mixed` so that SIGTERM reaches only the worker, and
+`TimeoutStopSec=30s` as the bound. The preview unit sets `OOMPolicy=continue`:
+a converter killed by the memory limit fails its job instead of stopping the
+unit and requeueing the same conversion.
+
 No migration is needed. The wall-clock expiry is removed: a long but healthy
 conversion is never recovered, and a lost one is recovered by the next timer
 tick, normally within seconds.

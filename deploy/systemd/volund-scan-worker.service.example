@@ -12,6 +12,9 @@ EnvironmentFile=-/etc/volund/volund.env
 WorkingDirectory=/srv/volund
 UMask=0027
 TimeoutStartSec=2h
+# SIGTERM lets the worker abandon the uncommitted scan and requeue it (ADR 0030).
+KillMode=mixed
+TimeoutStopSec=30s
 MemoryHigh=2G
 MemoryMax=3G
 MemorySwapMax=512M

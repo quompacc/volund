@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use serde_json::json;
 use sqlx::{PgPool, Row};
 use tokio::process::Command;
+use tokio_util::sync::CancellationToken;
 use volund_core::{CAD_CONVERT_CONTRACT_VERSION, normalize_library_path};
 
 use crate::file_hash::sha256_file;
@@ -15,6 +16,7 @@ const DEFAULT_SCRATCH_ROOT: &str = "/srv/volund/scratch";
 const DEFAULT_CONVERTER: &str = "/usr/local/bin/volund-cad-convert";
 const DEFAULT_TIMEOUT_SECONDS: u64 = 1800;
 const CLAIM_LOST: &str = "conversion claim was lost before completion";
+const WORKER_STOPPED: &str = "conversion worker is stopping";
 
 #[derive(Clone, Debug)]
 pub struct PreviewWorkerConfig {
@@ -206,19 +208,44 @@ pub async fn process_next(
     pool: &PgPool,
     config: &PreviewWorkerConfig,
 ) -> Result<Option<ProcessReport>, String> {
-    let Some((run, lease)) = preview_claim::claim_next(pool).await? else {
+    process_next_until(pool, config, &CancellationToken::new()).await
+}
+
+/// Like [`process_next`], but an orderly worker stop (`stop`) ends the running
+/// converter process group and hands the conversion back to the queue.
+///
+/// # Errors
+///
+/// Returns an error when claiming, persisting, or requeueing a job fails.
+pub async fn process_next_until(
+    pool: &PgPool,
+    config: &PreviewWorkerConfig,
+    stop: &CancellationToken,
+) -> Result<Option<ProcessReport>, String> {
+    if stop.is_cancelled() {
+        return Ok(None);
+    }
+    let Some((run, mut lease)) = preview_claim::claim_next(pool).await? else {
         return Ok(None);
     };
-    let status = match execute_claimed(pool, config, &run).await {
-        Ok(()) => "ready",
+    // Dropping the conversion future on stop kills the converter's process group.
+    let outcome = tokio::select! {
+        outcome = execute_claimed(pool, config, &run) => outcome,
+        () = stop.cancelled() => Err(WORKER_STOPPED.to_owned()),
+    };
+    let status = match outcome {
+        Ok(()) => "ready".to_owned(),
         Err(message) if message == "conversion cancellation requested" => {
             mark_cancelled(pool, run.id).await?;
-            "cancelled"
+            "cancelled".to_owned()
         }
-        Err(message) if message == CLAIM_LOST => "lost",
+        Err(message) if message == CLAIM_LOST => "lost".to_owned(),
+        Err(message) if message == WORKER_STOPPED => {
+            preview_claim::requeue_stopped(&mut lease, run.id).await?
+        }
         Err(message) => {
             mark_failed(pool, run.id, &message).await?;
-            "failed"
+            "failed".to_owned()
         }
     };
     // Release only after the terminal state is durable; an early error drops
@@ -226,7 +253,7 @@ pub async fn process_next(
     lease.release().await;
     Ok(Some(ProcessReport {
         id: run.public_id,
-        status: status.to_owned(),
+        status,
     }))
 }
 
@@ -235,6 +262,7 @@ pub async fn process_next(
 pub async fn process_batch(
     pool: &PgPool,
     config: &PreviewWorkerConfig,
+    stop: &CancellationToken,
 ) -> Result<Vec<ProcessReport>, String> {
     let limit = crate::operational_policy::resolve(pool)
         .await
@@ -244,7 +272,8 @@ pub async fn process_batch(
     for _ in 0..limit {
         let pool = pool.clone();
         let config = config.clone();
-        tasks.spawn(async move { process_next(&pool, &config).await });
+        let stop = stop.clone();
+        tasks.spawn(async move { process_next_until(&pool, &config, &stop).await });
     }
     let mut reports = Vec::new();
     let mut first_error = None;
@@ -407,7 +436,8 @@ async fn persist_ready(
         .map_err(|error| format!("cannot persist conversion artifact: {error}"))?;
     }
     sqlx::query(
-        "UPDATE volund.conversion_runs SET status = 'ready', finished_at = now() WHERE id = $1",
+        "UPDATE volund.conversion_runs SET status = 'ready', finished_at = now(), \
+         diagnostics = '[]'::jsonb WHERE id = $1",
     )
     .bind(run.id)
     .execute(&mut *transaction)

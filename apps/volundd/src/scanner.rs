@@ -159,14 +159,13 @@ async fn scan_with_lock(
     full: bool,
     claimed_scan_id: Option<i64>,
 ) -> Result<ScanReport, String> {
-    let mut lock_connection = pool
-        .acquire()
-        .await
-        .map_err(|error| format!("cannot acquire scan lock connection: {error}"))?;
+    // Detached, so an abandoned scan closes the session and frees the lock
+    // instead of returning a locked connection to the pool.
+    let mut lock_connection = crate::job_lease::Lease::open(pool).await?;
     let locked: bool = sqlx::query_scalar("SELECT pg_try_advisory_lock($1 + $2)")
         .bind(SCAN_LOCK_NAMESPACE)
         .bind(root.id)
-        .fetch_one(&mut *lock_connection)
+        .fetch_one(lock_connection.connection())
         .await
         .map_err(|error| format!("cannot acquire scan lock: {error}"))?;
     if !locked {
@@ -177,11 +176,7 @@ async fn scan_with_lock(
         return Err(message);
     }
     let result = scan_locked(pool, root, full, claimed_scan_id).await;
-    let _ = sqlx::query_scalar::<_, bool>("SELECT pg_advisory_unlock($1 + $2)")
-        .bind(SCAN_LOCK_NAMESPACE)
-        .bind(root.id)
-        .fetch_one(&mut *lock_connection)
-        .await;
+    lock_connection.release().await;
     result
 }
 

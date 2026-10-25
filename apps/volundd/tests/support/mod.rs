@@ -14,6 +14,8 @@ use volundd::database::{self, DatabaseConfig};
 use volundd::identity::{BootstrapSecret, FirstOwnerInput, create_first_owner};
 use volundd::session::{LoginInput, SessionConfig, login};
 
+pub mod conversion_worker;
+
 const TEST_LOCK_ID: i64 = 8_607_563_683_953_084_228;
 
 /// Send an unauthenticated or pre-authenticated GET and decode its JSON body.

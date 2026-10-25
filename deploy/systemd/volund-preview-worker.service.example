@@ -12,6 +12,13 @@ EnvironmentFile=-/etc/volund/volund.env
 WorkingDirectory=/srv/volund
 UMask=0027
 TimeoutStartSec=40min
+# SIGTERM reaches only the worker, which kills the converter group and requeues
+# the job; anything still alive after TimeoutStopSec is killed (ADR 0030).
+KillMode=mixed
+TimeoutStopSec=30s
+# A converter killed by the memory limit fails its job instead of stopping the
+# unit, which would requeue the same conversion again.
+OOMPolicy=continue
 MemoryHigh=5500M
 MemoryMax=6500M
 MemorySwapMax=1G

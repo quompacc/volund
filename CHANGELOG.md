@@ -55,6 +55,11 @@ until a signed release tag is created.
   Versuchen als fehlgeschlagen beendet. Späte Abschlüsse eines bereits
   übernommenen Laufs veröffentlichen nichts mehr, und ein Fehler in einem
   Batch-Task bricht parallele Jobs nicht mehr ab.
+- Vorschau- und Scan-Worker beenden sich bei SIGTERM/SIGINT geordnet: Der
+  Konverter-Prozessbaum wird beendet bzw. der unbestätigte Scan verworfen und
+  der Job wieder eingereiht (höchstens dreimal). Die systemd-Beispielunits
+  setzen `KillMode=mixed`, `TimeoutStopSec=30s` und für den Vorschau-Worker
+  `OOMPolicy=continue`, damit ein OOM-beendeter Konverter nicht die Unit stoppt.
 - RustSec meldet für `zip 4.6.1` drei Lücken in `ZipArchive::extract` und
   `ZipStreamReader::extract`. VÖLUND ruft beide nicht auf; der ZIP-Import liest
   Einträge einzeln und weist Symlinks und Sonderdateien ab. Die Ausnahme ist im

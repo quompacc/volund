@@ -1,4 +1,5 @@
 mod job_runner;
+mod worker_command;
 
 use std::env;
 use std::process::ExitCode;
@@ -6,7 +7,7 @@ use std::process::ExitCode;
 use volund_core::CAD_CONVERT_CONTRACT_VERSION;
 use volundd::{
     catalog_options, daemon_command, database, import_cleanup, operations, policy_worker,
-    preview_options, preview_pipeline, runtime_log, scan_pipeline, scanner,
+    preview_options, preview_pipeline, runtime_log, scanner,
 };
 
 #[tokio::main]
@@ -194,178 +195,10 @@ async fn main() -> ExitCode {
             }
         }
         Some(command) if command == "process-next-preview" => {
-            let worker_config = match preview_pipeline::PreviewWorkerConfig::from_environment() {
-                Ok(config) => config,
-                Err(message) => {
-                    runtime_log::failure(
-                        "preview-worker",
-                        "preview_worker.start_failed",
-                        "worker_config_invalid",
-                        &message,
-                    );
-                    return ExitCode::FAILURE;
-                }
-            };
-            let database_config = match database::DatabaseConfig::from_environment() {
-                Ok(config) => config,
-                Err(message) => {
-                    runtime_log::failure(
-                        "preview-worker",
-                        "preview_worker.start_failed",
-                        "database_config_invalid",
-                        &message,
-                    );
-                    return ExitCode::FAILURE;
-                }
-            };
-            let pool = match database::connect(&database_config).await {
-                Ok(pool) => pool,
-                Err(message) => {
-                    runtime_log::failure(
-                        "preview-worker",
-                        "preview_worker.start_failed",
-                        "database_connect_failed",
-                        &message,
-                    );
-                    return ExitCode::FAILURE;
-                }
-            };
-            let result = preview_pipeline::process_batch(&pool, &worker_config).await;
-            if let Err(message) =
-                operations::record_component(&pool, "preview-worker", result.is_ok()).await
-            {
-                runtime_log::failure(
-                    "preview-worker",
-                    "preview_worker.heartbeat_failed",
-                    "heartbeat_failed",
-                    &message,
-                );
-                return ExitCode::FAILURE;
-            }
-            match result {
-                Ok(reports) if !reports.is_empty() => {
-                    for report in &reports {
-                        runtime_log::record(
-                            &pool,
-                            "preview-worker",
-                            "preview_worker.job.completed",
-                            "preview_job_terminal",
-                            runtime_log::Severity::Info,
-                            &format!("state={}", report.status),
-                            Some(&report.id),
-                        )
-                        .await;
-                    }
-                    ExitCode::SUCCESS
-                }
-                Ok(_) => {
-                    runtime_log::record(
-                        &pool,
-                        "preview-worker",
-                        "preview_worker.idle",
-                        "queue_empty",
-                        runtime_log::Severity::Debug,
-                        "no queued preview job",
-                        None,
-                    )
-                    .await;
-                    ExitCode::SUCCESS
-                }
-                Err(message) => {
-                    runtime_log::record(
-                        &pool,
-                        "preview-worker",
-                        "preview_worker.failed",
-                        "preview_worker_failed",
-                        runtime_log::Severity::Error,
-                        &message,
-                        None,
-                    )
-                    .await;
-                    ExitCode::FAILURE
-                }
-            }
+            worker_command::run(worker_command::Worker::Preview).await
         }
         Some(command) if command == "process-next-scan" => {
-            let database_config = match database::DatabaseConfig::from_environment() {
-                Ok(config) => config,
-                Err(message) => {
-                    runtime_log::failure(
-                        "scan-worker",
-                        "scan_worker.start_failed",
-                        "database_config_invalid",
-                        &message,
-                    );
-                    return ExitCode::FAILURE;
-                }
-            };
-            let pool = match database::connect(&database_config).await {
-                Ok(pool) => pool,
-                Err(message) => {
-                    runtime_log::failure(
-                        "scan-worker",
-                        "scan_worker.start_failed",
-                        "database_connect_failed",
-                        &message,
-                    );
-                    return ExitCode::FAILURE;
-                }
-            };
-            let result = scan_pipeline::process_batch(&pool).await;
-            if let Err(message) =
-                operations::record_component(&pool, "scan-worker", result.is_ok()).await
-            {
-                runtime_log::failure(
-                    "scan-worker",
-                    "scan_worker.heartbeat_failed",
-                    "heartbeat_failed",
-                    &message,
-                );
-                return ExitCode::FAILURE;
-            }
-            match result {
-                Ok(reports) if !reports.is_empty() => {
-                    for report in &reports {
-                        runtime_log::record(
-                            &pool,
-                            "scan-worker",
-                            "scan_worker.job.completed",
-                            "scan_job_terminal",
-                            runtime_log::Severity::Info,
-                            &format!("state={}", report.status),
-                            Some(&report.id),
-                        )
-                        .await;
-                    }
-                    ExitCode::SUCCESS
-                }
-                Ok(_) => {
-                    runtime_log::record(
-                        &pool,
-                        "scan-worker",
-                        "scan_worker.idle",
-                        "queue_empty",
-                        runtime_log::Severity::Debug,
-                        "no queued scan job",
-                        None,
-                    )
-                    .await;
-                    ExitCode::SUCCESS
-                }
-                Err(message) => {
-                    runtime_log::record(
-                        &pool,
-                        "scan-worker",
-                        "scan_worker.failed",
-                        "scan_worker_failed",
-                        runtime_log::Severity::Error,
-                        &message,
-                        None,
-                    )
-                    .await;
-                    ExitCode::FAILURE
-                }
-            }
+            worker_command::run(worker_command::Worker::Scan).await
         }
         Some(command) if command == "process-schedules" => {
             let config = match database::DatabaseConfig::from_environment() {
