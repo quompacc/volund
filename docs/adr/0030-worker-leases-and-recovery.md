@@ -79,6 +79,21 @@ The runner also accepts the `--linear-deflection` and `--angular-deflection`
 options that the worker passes for custom profiles. Before, the runner rejected
 them, so every conversion with a custom deflection failed.
 
+### Orphaned directories
+
+Killed, cancelled, stopped, and lost conversions can leave runner directories
+behind. Retention now removes them, but only if no catalog artifact references
+them and they are old enough that no live conversion can own them:
+
+- `.work/<job>`: older than two days, beyond the 24-hour maximum limit;
+- `failed/<job>`: older than the artifact retention age, so failures stay
+  available for diagnosis;
+- `jobs/<job>`: no artifact row, and older than one day.
+
+Only real directories named like runner job IDs are considered, and symlinks
+are never followed. The retention result reports `orphanDirectories` and
+`orphanBytes`.
+
 No migration is needed. The wall-clock expiry is removed: a long but healthy
 conversion is never recovered, and a lost one is recovered by the next timer
 tick, normally within seconds.

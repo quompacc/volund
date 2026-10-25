@@ -2443,7 +2443,7 @@ components:
         reasonCodes: { type: array, items: { type: string } }
     RetentionResult:
       type: object
-      required: [id, status, artifactRuns, artifactFiles, artifactBytes, diagnosticsCleared, resultCodes]
+      required: [id, status, artifactRuns, artifactFiles, artifactBytes, diagnosticsCleared, orphanDirectories, orphanBytes, resultCodes]
       properties:
         id: { type: string, format: uuid }
         status: { type: string, enum: [completed, partial, failed] }
@@ -2451,6 +2451,8 @@ components:
         artifactFiles: { type: integer, minimum: 0 }
         artifactBytes: { type: integer, minimum: 0 }
         diagnosticsCleared: { type: integer, minimum: 0 }
+        orphanDirectories: { type: integer, minimum: 0, description: Unreferenced conversion work, failed, or unpublished job directories removed. }
+        orphanBytes: { type: integer, minimum: 0 }
         resultCodes: { type: array, items: { type: string } }
     Root:
       type: object

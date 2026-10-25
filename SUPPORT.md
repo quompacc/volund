@@ -44,8 +44,11 @@ catalog does not guarantee a generated 3D preview.
   incomplete; the automated Firefox and Chromium responsive matrices pass.
 - Large-assembly performance around the 1,500-mesh target and repeated viewer
   resource release have not completed their final acceptance measurements.
-- Worker restart, running-job cancellation, orphaned leases, converter timeout,
-  and recovery remain under the E.2 audit gate.
+- Worker leases, immediate recovery of lost jobs, orderly SIGTERM stop,
+  lock-aware conversion timeouts, and orphaned-directory cleanup are
+  implemented and covered by Linux integration tests with real worker
+  processes (ADR 0030). Their acceptance under systemd on a production host
+  belongs to the J.2–J.4 operations acceptance.
 - The complete slicer handoff safety and unavailable-target behavior remain
   under G.4.
 - Candidate upgrade/rollback, systemd boot, and external proxy acceptance remain

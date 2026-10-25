@@ -91,7 +91,7 @@ export interface RetentionPreview {
 
 export interface RetentionResult extends Omit<RetentionPreview, "diagnostics" | "reasonCodes"> {
   id: string; status: "completed" | "partial" | "failed";
-  diagnosticsCleared: number; resultCodes: string[];
+  diagnosticsCleared: number; orphanDirectories: number; orphanBytes: number; resultCodes: string[];
 }
 
 export interface LibraryRoot {

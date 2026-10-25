@@ -68,6 +68,10 @@ until a signed release tag is created.
 - Eigene Konvertierungsprofile mit Mesh-Deflection scheiterten immer, weil
   `volundd convert` `--linear-deflection`/`--angular-deflection` ablehnte; die
   Werte werden jetzt geprüft und an den Konverter weitergereicht.
+- Die tägliche Retention entfernt verwaiste Konvertierungsverzeichnisse unter
+  `derived/` (`.work/`, `failed/` und unveröffentlichte `jobs/`), sobald kein
+  Artefakt sie referenziert und sie alt genug sind; das Ergebnis meldet
+  `orphanDirectories` und `orphanBytes`.
 - RustSec meldet für `zip 4.6.1` drei Lücken in `ZipArchive::extract` und
   `ZipStreamReader::extract`. VÖLUND ruft beide nicht auf; der ZIP-Import liest
   Einträge einzeln und weist Symlinks und Sonderdateien ab. Die Ausnahme ist im

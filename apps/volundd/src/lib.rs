@@ -34,6 +34,7 @@ pub mod conversion_profiles;
 mod credential_guard;
 pub mod daemon_command;
 pub mod database;
+mod derived_reaper;
 pub mod file_hash;
 pub mod file_metadata;
 pub mod identity;

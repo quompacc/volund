@@ -141,6 +141,12 @@ Jobs move through these filesystem states:
 /srv/volund/derived/failed/<job-id>/  failed or timed out
 ```
 
+Daily retention removes directories that no catalog artifact references:
+`.work/` entries older than two days, `failed/` entries older than the
+artifact retention age, and unpublished `jobs/` entries older than one day.
+It only considers directories named like runner job IDs and never follows
+symlinks.
+
 Every directory contains an atomically updated `job.json` conforming to
 [`contracts/job-v1.schema.json`](../../contracts/job-v1.schema.json). Successful
 jobs also contain the five converter artifacts. Failed jobs retain diagnostics

@@ -27,6 +27,8 @@ pub struct RetentionResult {
     pub artifact_files: i64,
     pub artifact_bytes: i64,
     pub diagnostics_cleared: i64,
+    pub orphan_directories: i64,
+    pub orphan_bytes: i64,
     pub result_codes: Vec<String>,
 }
 
@@ -98,6 +100,8 @@ pub async fn execute(
             Err(code) => codes.push(code),
         }
     }
+    let orphans = crate::derived_reaper::reap(pool, &root, policy.derived_artifact_days).await?;
+    codes.extend(orphans.codes);
     let diagnostic_days =
         i32::try_from(policy.job_diagnostic_days).map_err(|_| "invalid retention age")?;
     let mut final_tx = pool
@@ -132,6 +136,8 @@ pub async fn execute(
         artifact_files: files,
         artifact_bytes: bytes,
         diagnostics_cleared: cleared,
+        orphan_directories: orphans.directories,
+        orphan_bytes: orphans.bytes,
         result_codes: codes,
     })
 }
