@@ -32,7 +32,7 @@ The native quality job runs:
 4. the native OpenCascade release build and all CTests;
 5. all Rust unit, HTTP-contract, Linux, PostgreSQL, job-runner, preview, and
    scanner tests against `volund_ci_test`;
-6. RustSec against the complete lockfile with only the reviewed exception in
+6. RustSec against the complete lockfile with only the reviewed exceptions in
    [the advisory register](security/advisory-exceptions.md).
 
 After that job succeeds, GitHub creates the source archive twice from the same

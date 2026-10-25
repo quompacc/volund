@@ -40,6 +40,11 @@ until a signed release tag is created.
 
 ### Fixed
 
+- RustSec meldet für `zip 4.6.1` drei Lücken in `ZipArchive::extract` und
+  `ZipStreamReader::extract`. VÖLUND ruft beide nicht auf; der ZIP-Import liest
+  Einträge einzeln und weist Symlinks und Sonderdateien ab. Die Ausnahme ist im
+  Advisory-Register begründet und befristet, `tests/dependency_guard.rs` verhindert
+  eine künftige Nutzung. `zip 9` setzt Rust 1.88 voraus, Debian 13 liefert 1.85.
 - CI-Schritt „Test and build web application“ war seit dem 2026-10-25 rot,
   weil `npm audit` neue Sicherheitsmeldungen für Buildwerkzeuge meldete. Vite
   8.3.5, Vitest 4.1.12 und happy-dom 21.0.4 schließen sie; Lizenzinventar und
