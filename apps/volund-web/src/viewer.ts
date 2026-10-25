@@ -89,9 +89,9 @@ export class CadViewer {
   private readonly controls: OrbitControls;
   private readonly loader = new GLTFLoader();
   private readonly stlLoader = new STLLoader();
-  private readonly keyLight = new THREE.DirectionalLight(0xfff4d6, 3.2);
-  private readonly fillLight = new THREE.DirectionalLight(0xc7d2c0, 1.35);
-  private readonly rimLight = new THREE.DirectionalLight(0x91a77f, 1.8);
+  private readonly keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+  private readonly fillLight = new THREE.DirectionalLight(0xdfe5eb, 1.35);
+  private readonly rimLight = new THREE.DirectionalLight(0xb4c0cb, 1.8);
   private readonly lightTarget = new THREE.Object3D();
   private readonly grid?: THREE.GridHelper;
   private model?: THREE.Object3D;
@@ -112,16 +112,16 @@ export class CadViewer {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.screenSpacePanning = true;
-    this.scene.add(new THREE.HemisphereLight(0xe8f0dc, 0x2b3027, 2.6));
+    this.scene.add(new THREE.HemisphereLight(0xeef2f6, 0x2c3238, 2.6));
     this.keyLight.target = this.lightTarget;
     this.fillLight.target = this.lightTarget;
     this.rimLight.target = this.lightTarget;
     this.scene.add(this.keyLight, this.fillLight, this.rimLight, this.lightTarget);
     const lightBackground = preferences?.background === "light"
-      || preferences?.background === "system" && window.matchMedia("(prefers-color-scheme: light)").matches;
-    this.scene.background = new THREE.Color(lightBackground ? 0xf3f4f6 : 0x111827);
+      || preferences?.background === "system" && systemPrefersLightStage();
+    this.scene.background = new THREE.Color(lightBackground ? 0xe9ecef : 0x121417);
     if (preferences?.gridVisible !== false) {
-      this.grid = new THREE.GridHelper(10, 20, lightBackground ? 0x6b7280 : 0x9ca3af, lightBackground ? 0xd1d5db : 0x374151);
+      this.grid = new THREE.GridHelper(10, 20, lightBackground ? 0x9aa3ac : 0x59626b, lightBackground ? 0xd3d8dd : 0x2b3137);
       this.grid.name = "inspection-grid";
       this.scene.add(this.grid);
     }
@@ -201,7 +201,7 @@ export class CadViewer {
     const object = this.findObject(name);
     if (!object) return;
     this.selectedObject = object;
-    this.selectionHelper = new THREE.BoxHelper(object, 0xf4b84a);
+    this.selectionHelper = new THREE.BoxHelper(object, 0x1b9aaa);
     this.selectionHelper.name = "inspection-selection";
     this.scene.add(this.selectionHelper);
   }
@@ -349,4 +349,10 @@ function disposeObjectResources(root: THREE.Object3D): void {
   textures.forEach((texture) => texture.dispose());
   materials.forEach((material) => material.dispose());
   geometries.forEach((geometry) => geometry.dispose());
+}
+
+/** The "system" stage follows the page theme: an explicit choice wins, otherwise the OS preference. */
+export function systemPrefersLightStage(root: HTMLElement = document.documentElement): boolean {
+  if (root.dataset.theme === "light" || root.dataset.theme === "dark") return root.dataset.theme === "light";
+  return !window.matchMedia("(prefers-color-scheme: dark)").matches;
 }

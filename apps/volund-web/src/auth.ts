@@ -94,7 +94,7 @@ async function login(host: HTMLElement): Promise<CurrentSession> {
 
 function accessMarkup(eyebrow: string, title: string, copy: string, fields: string): string {
   return `<main class="access-shell"><section class="access-card">
-    <div class="access-brand"><span class="brand-mark">V</span><div><strong>VÖLUND</strong><small>THE SOVEREIGN CAD VAULT</small></div></div>
+    <div class="access-brand"><span class="brand-mark" aria-hidden="true">V</span><div><strong>VÖLUND</strong><small>CAD-Bibliothek</small></div></div>
     <p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p>${copy}</p>
     <form><div class="access-error" role="alert"></div>${fields}</form>
   </section></main>`;

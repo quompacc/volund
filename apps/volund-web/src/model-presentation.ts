@@ -11,7 +11,7 @@ export function modelCardMarkup(model: ModelSummary): string {
   const cover = model.slug.includes("voron") ? "voron" : "forge";
   const coverContent = model.thumbnail.status === "ready" && model.thumbnail.url
     ? `<span class="model-thumbnail-frame"><img class="model-thumbnail-backdrop" src="${escapeMarkup(model.thumbnail.url)}" alt="" aria-hidden="true"><img class="model-thumbnail" data-thumbnail-fit="contain" src="${escapeMarkup(model.thumbnail.url)}" alt="Vorschaubild für ${escapeMarkup(model.name)}"></span>`
-    : `<span class="model-thumbnail-placeholder"><i>◇</i><small>Eigenes Bild auswählen</small></span>`;
+    : `<span class="model-thumbnail-placeholder"><i class="icon icon-image" aria-hidden="true"></i><small>Eigenes Bild auswählen</small></span>`;
   const thumbnailStatus = model.thumbnail.status === "fallback" ? '<span class="model-state thumbnail-fallback">Auswahl nicht verfügbar</span>' : model.thumbnail.status === "ready" ? '<span class="model-state"><i></i> Eigenes Vorschaubild</span>' : '<span class="model-state"><i></i> Katalogisiert</span>';
   return `<article class="model-card" data-model="${escapeMarkup(model.id)}"><button class="model-cover cover-${cover}" data-open-model="${escapeMarkup(model.id)}" aria-label="${escapeMarkup(model.name)} öffnen">${coverContent}${thumbnailStatus}</button><div class="model-card-body"><p class="eyebrow">${escapeMarkup(collection)}</p><h3>${escapeMarkup(model.name)}</h3><p>${escapeMarkup(model.description || `${model.fileCount} dauerhaft verknüpfte Projektdateien.`)}</p><div class="format-pills">${formats.map((format) => `<span>${escapeMarkup(format.toUpperCase())}</span>`).join("")}${tags}</div></div><footer><span>${model.fileCount} Dateien</span><span>${escapeMarkup(formatUpdated(model.updatedAtUnixMs))}</span><button data-open-model="${escapeMarkup(model.id)}">Öffnen →</button></footer></article>`;
 }
@@ -27,7 +27,7 @@ export function thumbnailPanelMarkup(model: ModelSummary, candidates: ThumbnailC
   const selected = model.thumbnail.candidateId;
   const visual = model.thumbnail.status === "ready" && model.thumbnail.url
     ? `<img class="selected-thumbnail" src="${escapeMarkup(model.thumbnail.url)}" alt="Ausgewähltes Vorschaubild für ${escapeMarkup(model.name)}">`
-    : `<div class="thumbnail-default"><span>◇</span><small>${model.thumbnail.status === "fallback" ? "Die ausgewählte Bildquelle ist nicht mehr verfügbar. Bitte ein anderes echtes Bild wählen." : "Noch kein echtes Vorschaubild ausgewählt. Bis dahin wird ein neutraler Platzhalter gezeigt."}</small></div>`;
+    : `<div class="thumbnail-default"><span class="icon icon-image" aria-hidden="true"></span><small>${model.thumbnail.status === "fallback" ? "Die ausgewählte Bildquelle ist nicht mehr verfügbar. Bitte ein anderes echtes Bild wählen." : "Noch kein echtes Vorschaubild ausgewählt. Bis dahin wird ein neutraler Platzhalter gezeigt."}</small></div>`;
   if (!canEdit) return `<section class="thumbnail-panel"><p class="eyebrow">VORSCHAUBILD</p>${visual}</section>`;
   const imageCandidates = candidates.filter((candidate) => candidate.kind === "source-file");
   const unavailable = model.thumbnail.kind === "source-file" && selected && !imageCandidates.some((candidate) => candidate.id === selected)
@@ -83,12 +83,13 @@ export function slicerHandoffStatusMarkup(downloadUrl: string): string {
   return `Slicer wird geöffnet. <a href="${escapeMarkup(downloadUrl)}">Falls kein Zielprogramm reagiert: Datei herunterladen</a>`;
 }
 
+/** Decorative icon markup for files without an embedded viewer. */
 export function fileGlyph(file: ModelFile): string {
-  if (file.role === "document") return "▤";
-  if (file.role === "archive") return "▦";
-  if (file.role === "image") return "▧";
-  if (file.format) return "◇";
-  return "·/·";
+  const name = file.role === "document" ? "document"
+    : file.role === "archive" ? "archive"
+    : file.role === "image" ? "image"
+    : file.format ? "cube" : "file";
+  return `<span class="icon icon-${name}" aria-hidden="true"></span>`;
 }
 
 function formatUpdated(value: number): string {

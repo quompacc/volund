@@ -1,4 +1,8 @@
+import "./theme.css";
+import "./icons.css";
 import "./styles.css";
+import "./imports.css";
+import "./raw-catalog.css";
 import "./responsive.css";
 import "./phase5.css";
 import { mountAdministration } from "./admin";
@@ -11,8 +15,11 @@ import { mountNavigationScroll } from "./navigation-scroll";
 import { mountMockView } from "./mockup";
 import { mountRawCatalog } from "./raw-catalog";
 import type { CurrentSession } from "./types";
+import { applyThemePreference, browserThemeStorage, mountThemeToggle, readThemePreference } from "./theme";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
+const themeStorage = browserThemeStorage();
+applyThemePreference(readThemePreference(themeStorage), document.documentElement);
 void boot();
 
 async function boot(): Promise<void> {
@@ -31,16 +38,17 @@ function mountApplication(session: CurrentSession): void {
   const canAdminister = session.role === "owner" || session.role === "administrator";
   const canEdit = session.role !== "viewer";
   app.innerHTML = `<header class="topbar">
-    <button class="brand" data-view="dashboard" aria-label="VÖLUND Übersicht"><span class="brand-mark">V</span><span><strong>VÖLUND</strong><small>THE SOVEREIGN CAD VAULT</small></span></button>
-    <div class="top-actions">${canEdit ? '<button class="top-import" data-view="imports">＋ Importieren</button>' : ""}<div class="health"><span id="health-dot"></span><span id="health-text">Verbindung wird geprüft</span></div><button id="logout" class="account-button">${escapeMarkup(session.displayName)} · Abmelden</button></div>
+    <button class="brand" data-view="dashboard" aria-label="VÖLUND Übersicht"><span class="brand-mark" aria-hidden="true">V</span><span><strong>VÖLUND</strong><small>CAD-Bibliothek</small></span></button>
+    <div class="top-actions">${canEdit ? '<button class="top-import" data-view="imports"><span class="icon icon-plus" aria-hidden="true"></span>Importieren</button>' : ""}<div class="health"><span id="health-dot"></span><span id="health-text">Verbindung wird geprüft</span></div><button id="theme-toggle" class="icon-button" type="button"></button><button id="logout" class="account-button">${escapeMarkup(session.displayName)} · Abmelden</button></div>
   </header><div class="app-shell"><aside class="app-nav">
-    <div class="nav-group"><p>VÖLUND</p><button data-view="dashboard"><i>◇</i><span>Übersicht</span></button><button data-view="models"><i>⬡</i><span>Modelle</span><b id="nav-model-count">—</b></button><button data-view="collections"><i>▱</i><span>Sammlungen</span></button><button data-view="tags"><i>⌗</i><span>Tags</span></button><button data-view="authors"><i>♙</i><span>Autoren</span></button></div>
-    <div class="nav-group"><p>DATEN</p><button data-view="raw"><i>⌁</i><span>Rohdateien</span><b id="nav-file-count">—</b></button>${canEdit ? '<button data-view="imports"><i>⇣</i><span>Importe</span></button><button data-view="import-history"><i>◷</i><span>Importhistorie</span></button>' : ""}</div>
-    <div class="nav-group"><p>SYSTEM</p><button data-view="administration"><i>⚙</i><span>${canAdminister ? "Administration" : "Mein Konto"}</span></button></div>
+    <div class="nav-group"><p>Bibliothek</p><button data-view="dashboard"><i class="icon icon-home" aria-hidden="true"></i><span>Übersicht</span></button><button data-view="models"><i class="icon icon-cube" aria-hidden="true"></i><span>Modelle</span><b id="nav-model-count">—</b></button><button data-view="collections"><i class="icon icon-layers" aria-hidden="true"></i><span>Sammlungen</span></button><button data-view="tags"><i class="icon icon-tag" aria-hidden="true"></i><span>Tags</span></button><button data-view="authors"><i class="icon icon-user" aria-hidden="true"></i><span>Autoren</span></button></div>
+    <div class="nav-group"><p>Daten</p><button data-view="raw"><i class="icon icon-folder" aria-hidden="true"></i><span>Rohdateien</span><b id="nav-file-count">—</b></button>${canEdit ? '<button data-view="imports"><i class="icon icon-upload" aria-hidden="true"></i><span>Importe</span></button><button data-view="import-history"><i class="icon icon-history" aria-hidden="true"></i><span>Importhistorie</span></button>' : ""}</div>
+    <div class="nav-group"><p>System</p><button data-view="administration"><i class="icon icon-settings" aria-hidden="true"></i><span>${canAdminister ? "Administration" : "Mein Konto"}</span></button></div>
     <div class="nav-foot"><span>${escapeMarkup(session.role.toUpperCase())}</span><p>Angemeldet als ${escapeMarkup(session.email)}. Zugriffe werden serverseitig geprüft.</p></div>
   </aside><main id="workspace" class="workspace"></main></div>`;
   const workspace = app.querySelector<HTMLElement>("#workspace")!;
   mountNavigationScroll(app.querySelector<HTMLElement>(".app-nav")!);
+  mountThemeToggle(app.querySelector<HTMLButtonElement>("#theme-toggle")!, document.documentElement, themeStorage);
   let currentView: AppView | undefined;
   let currentModelId: string | null = null;
   let disposeView: (() => void) | undefined;

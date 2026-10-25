@@ -8,7 +8,29 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+
+- Umschaltbare Darstellung (System, Hell, Dunkel) in der Kopfleiste. Die
+  Auswahl wird pro Browser gespeichert; „System“ folgt der Betriebssystem-
+  Einstellung, und der 3D-Viewer mit Hintergrund „System“ folgt dem gewählten
+  Seitenthema.
+- `VOLUND_API_PROXY` setzt das API-Ziel des Vite-Dev-Servers, etwa für einen
+  Tunnel zu einer Testinstanz. Mit `VOLUND_API_SECURE_COOKIES=true` schreibt
+  der Proxy nur die eigene `http`-Herkunft des Dev-Servers auf `https` um, damit
+  Instanzen mit Secure-Cookies die Herkunftsprüfung akzeptieren; fremde
+  Herkünfte bleiben abgelehnt.
+
+### Changed
+
+- Sachlicheres Oberflächendesign: neutrale Grautöne mit einem Petrol-Akzent,
+  Systemschrift statt Serifen, Strich-Icons statt Runen- und Formglyphen sowie
+  keine Verläufe, Raster- oder Leuchteffekte mehr. Alle Farben kommen aus
+  zentralen Design-Tokens (`theme.css`); Kontraste beider Themes werden
+  automatisch gegen 4,5:1 geprüft.
+- Stylesheets nach Bereichen aufgeteilt (`imports.css`, `raw-catalog.css`), damit
+  jede Datei unter der 600-Zeilen-Grenze bleibt.
+- Nüchternere Beschriftungen, etwa „CAD-Bibliothek“ statt „The Sovereign CAD
+  Vault“ und „Übersicht“ statt „Die Schmiede“.
 
 ## [0.39.0] - 2026-09-08
 

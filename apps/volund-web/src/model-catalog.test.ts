@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fileDetailMarkup, modelCardMarkup, modelFileFilter, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
+import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilter, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
 import type { ModelFile, ModelSummary, ThumbnailCandidate } from "./types";
 
 describe("persistent model catalog presentation", () => {
@@ -53,10 +53,8 @@ describe("persistent model catalog presentation", () => {
   });
 
   it("keeps the foreground thumbnail uncropped after the complete CSS cascade", () => {
-    const stylesCss = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
-    const responsiveCss = readFileSync(new URL("./responsive.css", import.meta.url), "utf8");
-    const phase5Css = readFileSync(new URL("./phase5.css", import.meta.url), "utf8");
-    const cssInBundleOrder = `${stylesCss}\n${responsiveCss}\n${phase5Css}`;
+    const cssInBundleOrder = ["styles", "imports", "raw-catalog", "responsive", "phase5"]
+      .map((name) => readFileSync(new URL(`./${name}.css`, import.meta.url), "utf8")).join("\n");
     const thumbnailRules = [...cssInBundleOrder.matchAll(/[.]model-thumbnail[ \t\r\n]*[{]([^}]*)[}]/g)];
     expect(thumbnailRules.length).toBeGreaterThan(0);
     expect(thumbnailRules.at(-1)?.[1]).toContain("object-fit: contain");
@@ -130,5 +128,16 @@ describe("model problem traffic light", () => {
     expect(modelProblemState([problem])).toEqual({ tone: "warning", label: "Warnungen", count: 1 });
     expect(modelProblemState([problem, { ...problem, key: "e", severity: "error" }])).toEqual({ tone: "error", label: "Fehler", count: 2 });
     expect(modelProblemState([{ ...problem, status: "resolved" }])).toEqual({ tone: "ok", label: "Keine Probleme", count: 0 });
+  });
+});
+
+describe("file icons", () => {
+  it("renders a decorative icon matching the file role", () => {
+    const file = (role: ModelFile["role"], format: string | null = null) => ({ role, format }) as ModelFile;
+    expect(fileGlyph(file("document"))).toBe('<span class="icon icon-document" aria-hidden="true"></span>');
+    expect(fileGlyph(file("archive"))).toContain("icon-archive");
+    expect(fileGlyph(file("image"))).toContain("icon-image");
+    expect(fileGlyph(file("master-cad", "step"))).toContain("icon-cube");
+    expect(fileGlyph(file("other"))).toContain("icon-file");
   });
 });

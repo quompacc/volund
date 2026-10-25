@@ -15,12 +15,12 @@ host.innerHTML = `
     <aside class="roots-panel">
       <div class="section-title"><span>Bibliotheken</span><span id="root-count">—</span></div>
       <nav id="roots" aria-label="Bibliotheken"></nav>
-      <div class="sovereignty"><span>CONTROLLED STORAGE</span><p>Nur bestätigte Ablageaktionen dürfen Originaldateien verschieben.</p></div>
+      <div class="sovereignty"><span>Verwaltete Ablage</span><p>Nur bestätigte Ablageaktionen dürfen Originaldateien verschieben.</p></div>
     </aside>
     <main class="catalog-panel">
       <div class="catalog-head">
-        <div class="catalog-title"><button id="tree-toggle" class="tree-toggle-mobile" aria-label="Ordnerbaum öffnen">☰</button><div><p class="eyebrow" id="root-eyebrow">ARCHIV</p><h1 id="root-title">CAD-Bibliothek</h1></div></div>
-        <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Unterhalb dieses Ordners suchen" /></label>
+        <div class="catalog-title"><button id="tree-toggle" class="tree-toggle-mobile" aria-label="Ordnerbaum öffnen"><span class="icon icon-menu" aria-hidden="true"></span></button><div><p class="eyebrow" id="root-eyebrow">ARCHIV</p><h1 id="root-title">CAD-Bibliothek</h1></div></div>
+        <label class="search"><span class="icon icon-search" aria-hidden="true"></span><input id="search" type="search" placeholder="Unterhalb dieses Ordners suchen" /></label>
       </div>
       <div class="catalog-tools">
         <nav id="breadcrumbs" class="breadcrumbs" aria-label="Ordnerpfad"></nav>
@@ -34,7 +34,7 @@ host.innerHTML = `
       <div class="pager"><button id="previous" disabled>← Zurück</button><span id="page-info">—</span><button id="next" disabled>Weiter →</button></div>
     </main>
     <section class="detail-panel" id="details">
-      <div class="detail-empty"><span class="forge-rune">◇</span><h2>Bauteil auswählen</h2><p>Wähle eine CAD-Datei, um Metadaten und 3D-Vorschau zu öffnen.</p></div>
+      <div class="detail-empty"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>Bauteil auswählen</h2><p>Wähle eine CAD-Datei, um Metadaten und 3D-Vorschau zu öffnen.</p></div>
     </section>
   </div>
   <dialog id="move-dialog" class="move-dialog">
@@ -104,7 +104,7 @@ function renderRoots(): void {
     row.append(treeToggleButton(root, "", key));
     const button = document.createElement("button");
     button.className = `tree-label tree-root-label${root.key === selectedRoot?.key && location.directory === "" ? " active" : ""}`;
-    button.innerHTML = `<span class="root-glyph">⬡</span><span><strong></strong><small></small></span><b></b>`;
+    button.innerHTML = `<span class="root-glyph icon icon-database" aria-hidden="true"></span><span><strong></strong><small></small></span><b></b>`;
     button.querySelector("strong")!.textContent = root.name;
     button.querySelector("small")!.textContent = root.latestScanStatus ?? "Noch nicht gescannt";
     button.querySelector("b")!.textContent = String(root.fileCount - root.missingFileCount);
@@ -152,7 +152,7 @@ function appendFolderNodes(container: HTMLElement, root: LibraryRoot, parent: st
     row.append(treeToggleButton(root, folder.path, key));
     const button = document.createElement("button");
     button.className = `tree-label tree-folder-label${root.key === selectedRoot?.key && folder.path === location.directory ? " active" : ""}`;
-    button.innerHTML = `<span class="tree-folder-glyph">▱</span><span></span><b></b>`;
+    button.innerHTML = `<span class="tree-folder-glyph icon icon-folder" aria-hidden="true"></span><span></span><b></b>`;
     button.querySelector("span:nth-child(2)")!.textContent = folder.name;
     button.querySelector("b")!.textContent = String(folder.fileCount);
     button.title = `${folder.path} · ${folderCountLabel(folder.fileCount)}`;
@@ -228,7 +228,7 @@ function renderBreadcrumbs(): void {
 function folderRow(folder: Folder): HTMLButtonElement {
   const button = document.createElement("button");
   button.className = "file-row folder-row";
-  button.innerHTML = `<span class="file-cell"><i>◇</i><span><strong></strong><small></small></span></span><span class="format">ORDNER</span><span></span><span></span>`;
+  button.innerHTML = `<span class="file-cell"><i><span class="icon icon-folder" aria-hidden="true"></span></i><span><strong></strong><small></small></span></span><span class="format">ORDNER</span><span></span><span></span>`;
   button.querySelector("strong")!.textContent = folder.name;
   button.querySelector("small")!.textContent = `${folderCountLabel(folder.fileCount)} enthalten`;
   const columns = button.querySelectorAll<HTMLElement>(":scope > span");
@@ -290,7 +290,7 @@ async function loadCatalog(replaceUrl = false): Promise<void> {
     } else {
       viewer?.dispose();
       viewer = undefined;
-      detailsElement.innerHTML = '<div class="detail-empty"><span class="forge-rune">◇</span><h2>Bauteil auswählen</h2><p>Wähle eine CAD-Datei, um Metadaten und 3D-Vorschau zu öffnen.</p></div>';
+      detailsElement.innerHTML = '<div class="detail-empty"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>Bauteil auswählen</h2><p>Wähle eine CAD-Datei, um Metadaten und 3D-Vorschau zu öffnen.</p></div>';
     }
   } catch (error) {
     showError(error instanceof Error ? error.message : "Katalog konnte nicht geladen werden.");
@@ -303,7 +303,7 @@ async function selectRoot(root: LibraryRoot, replaceUrl = false): Promise<void> 
   setText("#root-title", root.name);
   viewer?.dispose();
   viewer = undefined;
-  detailsElement.innerHTML = '<div class="detail-empty"><span class="forge-rune">◇</span><h2>Bauteil auswählen</h2><p>Wähle eine CAD-Datei, um Metadaten und 3D-Vorschau zu öffnen.</p></div>';
+  detailsElement.innerHTML = '<div class="detail-empty"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>Bauteil auswählen</h2><p>Wähle eine CAD-Datei, um Metadaten und 3D-Vorschau zu öffnen.</p></div>';
   await revealDirectory(root.key, "");
   await loadCatalog(replaceUrl);
 }
@@ -325,7 +325,7 @@ function renderDetails(file: CadFile, previews: Preview[]): void {
     <div class="detail-content"><p class="eyebrow">AUSGEWÄHLTES OBJEKT</p><h2 id="detail-name"></h2><p id="detail-path" class="detail-path"></p>
       <div class="status-line"><span class="status-dot ${status}"></span><span>${status === "none" ? "Keine Vorschau vorhanden" : previewLabel(status)}</span></div>
       <dl><div><dt>Format</dt><dd>${file.format?.toUpperCase() ?? "CAD"}</dd></div><div><dt>Dateigröße</dt><dd>${formatBytes(file.byteSize)}</dd></div><div><dt>Geändert</dt><dd>${formatDate(file.modifiedAtUnixMs)}</dd></div><div><dt>SHA-256</dt><dd class="hash" title="${file.sha256}">${file.sha256.slice(0, 16)}…</dd></div></dl>
-      <button id="move-file" class="managed-action">↳ Datei verschieben</button>
+      <button id="move-file" class="managed-action">Datei verschieben</button>
     </div>`;
   setText("#detail-name", fileName(file.path));
   setText("#detail-path", parentPath(file.path));
@@ -369,7 +369,7 @@ async function loadMoveFolders(): Promise<void> {
     moveFoldersElement.replaceChildren();
     for (const folder of loaded.items) {
       const button = document.createElement("button");
-      button.innerHTML = `<span>▱</span><span><strong></strong><small></small></span><b>Öffnen →</b>`;
+      button.innerHTML = `<span class="icon icon-folder" aria-hidden="true"></span><span><strong></strong><small></small></span><b>Öffnen →</b>`;
       button.querySelector("strong")!.textContent = folder.name;
       button.querySelector("small")!.textContent = folderCountLabel(folder.fileCount);
       button.addEventListener("click", () => {
@@ -431,7 +431,7 @@ async function selectFile(file: CadFile, replaceUrl = false): Promise<void> {
   location = { ...location, file: file.id };
   syncUrl(replaceUrl);
   renderEntries();
-  detailsElement.innerHTML = '<div class="detail-empty"><span class="forge-rune">◇</span><p>Vorschau wird gesucht …</p></div>';
+  detailsElement.innerHTML = '<div class="detail-empty"><span class="state-icon icon icon-cube" aria-hidden="true"></span><p>Vorschau wird gesucht …</p></div>';
   try {
     const previews = await catalogApi.previews(file.id);
     if (location.file === file.id) renderDetails(file, previews.items);

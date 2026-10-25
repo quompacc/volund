@@ -51,9 +51,9 @@ export function mountMockView(
 
 function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models"): void {
   const dashboard = view === "dashboard";
-  host.innerHTML = `<div class="page-scroll"><header class="page-hero"><div><p class="eyebrow">${dashboard ? "DIE SCHMIEDE" : "KATALOG"}</p>
+  host.innerHTML = `<div class="page-scroll"><header class="page-hero"><div><p class="eyebrow">${dashboard ? "ÜBERSICHT" : "KATALOG"}</p>
     <h1>${dashboard ? "Willkommen in VÖLUND" : "Alle Modelle"}</h1><p>Deine echten Modelle, Fertigungsdaten und Dokumente aus PostgreSQL.</p></div>
-    <div class="hero-actions"><button class="secondary-action" data-navigate="raw">Rohdateien</button><button class="primary-action" data-navigate="imports">＋ Modell importieren</button></div></header>
+    <div class="hero-actions"><button class="secondary-action" data-navigate="raw">Rohdateien</button><button class="primary-action" data-navigate="imports"><span class="icon icon-plus" aria-hidden="true"></span>Modell importieren</button></div></header>
     ${dashboard ? dashboardStats() : ""}<section class="content-section"><div class="section-heading"><div><p class="eyebrow">${dashboard ? "ZULETZT BEARBEITET" : "MODELLARCHIV"}</p><h2>${dashboard ? "Aktuelle Modelle" : "Alle Modelle"}</h2></div><div class="section-tools"><span>LIVE-KATALOG</span></div></div><div id="model-tag-filters" class="tag-facets" aria-label="Modelle nach Tag filtern"></div>
     <div id="model-grid-live" class="model-grid"><p class="loading-copy">Modelle werden geladen …</p></div></section></div>`;
   void Promise.all([catalogApi.models(), catalogApi.tags(false)]).then(
@@ -104,15 +104,15 @@ function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models"): voi
 
 function dashboardStats(): string {
   return `<section class="stat-grid" aria-label="Archivstatistik">
-    <article><span class="stat-rune">◇</span><div><strong id="dashboard-model-count">—</strong><small>Modelle</small></div><em>Live</em></article>
-    <article><span class="stat-rune">⌁</span><div><strong id="indexed-files">—</strong><small>Indexierte Rohdateien</small></div><em>Live</em></article>
-    <article><span class="stat-rune">⬡</span><div><strong id="dashboard-model-files">—</strong><small>Modellverknüpfungen</small></div><em>Stabile IDs</em></article>
-    <article><span class="stat-rune">✓</span><div><strong>PostgreSQL</strong><small>Katalogquelle</small></div><em class="success">System bereit</em></article>
+    <article><span class="stat-icon"><span class="icon icon-cube" aria-hidden="true"></span></span><div><strong id="dashboard-model-count">—</strong><small>Modelle</small></div><em>Live</em></article>
+    <article><span class="stat-icon"><span class="icon icon-file" aria-hidden="true"></span></span><div><strong id="indexed-files">—</strong><small>Indexierte Rohdateien</small></div><em>Live</em></article>
+    <article><span class="stat-icon"><span class="icon icon-link" aria-hidden="true"></span></span><div><strong id="dashboard-model-files">—</strong><small>Modellverknüpfungen</small></div><em>Stabile IDs</em></article>
+    <article><span class="stat-icon"><span class="icon icon-database" aria-hidden="true"></span></span><div><strong>PostgreSQL</strong><small>Katalogquelle</small></div><em class="success">System bereit</em></article>
   </section>`;
 }
 
 function mountModelProblems(host: HTMLElement, modelId: string | null, canEdit: boolean, navigate: Navigate): void {
-  host.innerHTML = '<div class="page-scroll"><section class="empty-concept"><span class="forge-rune">◇</span><h2>Probleme werden geladen …</h2></section></div>';
+  host.innerHTML = '<div class="page-scroll"><section class="empty-concept"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>Probleme werden geladen …</h2></section></div>';
   if (!modelId) {
     showCatalogError(host, "Keine Modell-ID wurde angegeben.");
     return;
@@ -163,7 +163,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
     stlTileViewers.forEach(({ viewer: tileViewer }) => tileViewer.dispose());
     stlTileViewers.clear();
   });
-  host.innerHTML = '<div class="page-scroll"><section class="empty-concept"><span class="forge-rune">◇</span><h2>Modell wird geladen …</h2></section></div>';
+  host.innerHTML = '<div class="page-scroll"><section class="empty-concept"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>Modell wird geladen …</h2></section></div>';
   if (!modelId) {
     showCatalogError(host, "Keine Modell-ID wurde angegeben.");
     return;
@@ -183,9 +183,9 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
       const problemState = modelProblemState(problems);
       host.innerHTML = `<div class="page-scroll model-page"><nav class="page-crumbs"><button data-navigate="models">Modelle</button><span>/</span><strong>${escapeMarkup(model.name)}</strong></nav>
         <header class="model-header"><div><p class="eyebrow">${escapeMarkup(model.kind.toUpperCase())}</p><h1>${escapeMarkup(model.name)}</h1><p>${escapeMarkup(model.description || "Persistiertes Modell aus der VÖLUND-Bibliothek.")}</p></div>
-        <div class="hero-actions"><button class="problem-indicator tone-${problemState.tone}" data-navigate="model-problems" data-model-id="${escapeMarkup(model.id)}"><i></i>${escapeMarkup(problemState.label)}${problemState.count ? ` · ${problemState.count}` : ""}</button><button class="secondary-action" data-navigate="raw">Rohdateien</button>${canEdit ? '<button id="open-model-editor" class="secondary-action">✎ Bearbeiten</button>' : ""}</div></header>
+        <div class="hero-actions"><button class="problem-indicator tone-${problemState.tone}" data-navigate="model-problems" data-model-id="${escapeMarkup(model.id)}"><i></i>${escapeMarkup(problemState.label)}${problemState.count ? ` · ${problemState.count}` : ""}</button><button class="secondary-action" data-navigate="raw">Rohdateien</button>${canEdit ? '<button id="open-model-editor" class="secondary-action"><span class="icon icon-edit" aria-hidden="true"></span>Bearbeiten</button>' : ""}</div></header>
         ${canEdit ? `<section id="model-extension-drop" class="model-extension-drop" tabindex="0"><div><p class="eyebrow">MODELL ERWEITERN</p><h2>Dateien sicher hinzufügen</h2><p>Dateien oder einen Ordner hier ablegen. Metadaten, Tags, Kollektionen und Primärquelle bleiben erhalten.</p></div><div class="import-pickers"><label class="primary-action">Dateien auswählen<input id="model-extension-files" type="file" multiple></label><label class="secondary-action">Ordner auswählen<input id="model-extension-folder" type="file" multiple webkitdirectory></label></div></section>` : ""}
-        <section class="model-overview"><div id="model-file-stage-home"><div id="model-file-viewer" class="model-hero-stage"><div class="stage-poster"><span class="forge-rune">◇</span><h2>${escapeMarkup(model.name)}</h2><p>Visuelle Vorschau wird vorbereitet …</p></div></div></div>
+        <section class="model-overview"><div id="model-file-stage-home"><div id="model-file-viewer" class="model-hero-stage"><div class="stage-poster"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>${escapeMarkup(model.name)}</h2><p>Visuelle Vorschau wird vorbereitet …</p></div></div></div>
         <aside class="model-facts">${thumbnailPanelMarkup(model, thumbnailCandidates, canEdit)}<p class="eyebrow">MODELLDATEN</p><dl><div><dt>Kollektionen</dt><dd>${escapeMarkup(collections)}</dd></div><div><dt>Autor</dt><dd>${escapeMarkup(model.authorName || "Nicht angegeben")}</dd></div><div><dt>Lizenz</dt><dd>${escapeMarkup(model.licenseKind === "not-specified" ? "Nicht angegeben" : model.licenseValue || "Nicht angegeben")}</dd></div><div><dt>Dateien</dt><dd>${model.fileCount}</dd></div><div><dt>Formate</dt><dd>${escapeMarkup(model.formats.join(" · ").toUpperCase() || "—")}</dd></div><div><dt>Revision</dt><dd>${model.revision}</dd></div><div><dt>Aktualisiert</dt><dd>${escapeMarkup(formatUpdated(model.updatedAtUnixMs))}</dd></div></dl>
         <div class="format-pills">${model.tags.map((tag) => `<span>${escapeMarkup(tag)}</span>`).join("") || "<span>OHNE TAGS</span>"}</div>${canEdit ? '<section class="lifecycle-entry"><h3>Sicherer Lebenszyklus</h3><p>Das Modell kann nach einer aktuellen Auswirkungsprüfung aus dem aktiven Katalog entfernt werden. Originaldateien bleiben erhalten.</p><button id="preview-model-removal" class="danger-action" type="button">Modell entfernen …</button><div id="model-lifecycle-state" aria-live="polite"></div></section>' : ""}</aside></section>
         <section class="content-section assembly-structure-section"><div class="section-heading"><div><p class="eyebrow">CAD-STRUKTUR</p><h2>Baugruppen & Teile der primären STEP-Datei</h2></div></div><div id="primary-step-structure" class="primary-step-structure"><p class="loading-copy">STEP-Baugruppenstruktur wird geladen …</p></div></section>
@@ -519,7 +519,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
       if (initial && preferences.previewAutoLoad !== "manual") openModelFile(initial);
       else if (preferences.previewAutoLoad === "manual") {
         const stage = host.querySelector<HTMLElement>("#model-file-viewer");
-        if (stage) stage.innerHTML = '<div class="stage-poster"><span class="forge-rune">◇</span><h2>Vorschau bereit</h2><p>Automatisches Laden ist für dieses Konto deaktiviert. Öffne eine Datei bewusst.</p></div>';
+        if (stage) stage.innerHTML = '<div class="stage-poster"><span class="state-icon icon icon-cube" aria-hidden="true"></span><h2>Vorschau bereit</h2><p>Automatisches Laden ist für dieses Konto deaktiviert. Öffne eine Datei bewusst.</p></div>';
       }
     },
   ).catch((error: Error) => showCatalogError(host, error.message));
