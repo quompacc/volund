@@ -44,6 +44,20 @@ until a signed release tag is created.
   jede Datei unter der 600-Zeilen-Grenze bleibt.
 - Nüchternere Beschriftungen, etwa „CAD-Bibliothek“ statt „The Sovereign CAD
   Vault“ und „Übersicht“ statt „Die Schmiede“.
+- CI prüft mit `scripts/check-line-limit.sh` die 600-Zeilen-Grenze für
+  handgeschriebene Codedateien; als `@generated` markierte Dateien sind
+  ausgenommen.
+- ADR „Model maintenance and presentation orientation“ von der doppelt
+  vergebenen Nummer 0020 auf 0028 umnummeriert; die Entscheidung bleibt gleich.
+- SUPPORT.md und die Unter-READMEs beschreiben den aktuellen Stand: J.1
+  abgeschlossen, bestandene Responsive-Matrizen, gestreamter Import-Upload und
+  die PostgreSQL-Vorschauwarteschlange.
+
+### Removed
+
+- Ungenutzter Demo-Viewer und Mock-Modelldaten. Das Katalogmodul heißt jetzt
+  `catalog-views.ts` (`mountCatalogView`) statt `mockup.ts`, weil es den echten
+  Katalog rendert.
 
 ## [0.39.0] - 2026-09-08
 

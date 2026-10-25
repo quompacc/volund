@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { catalogApi } from "./api";
-import { waitForArtifact } from "./mockup";
+import { waitForArtifact } from "./catalog-views";
 
 describe("preview polling lifecycle", () => {
   afterEach(() => {

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { catalogApi, identityApi } from "./api";
-import { mountMockView } from "./mockup";
+import { mountCatalogView } from "./catalog-views";
 import type { ModelFile, ModelSummary, UserPreferences } from "./types";
 
 vi.mock("./pdf-viewer", () => ({ PdfViewer: class {}, pdfViewerMarkup: vi.fn() }));
@@ -62,7 +62,7 @@ describe("model preview lifecycle", () => {
     const host = document.createElement("main");
     document.body.append(host);
 
-    const dispose = mountMockView(host, "model", vi.fn(), model.id, false, false);
+    const dispose = mountCatalogView(host, "model", vi.fn(), model.id, false, false);
     await vi.advanceTimersByTimeAsync(0);
     expect(enqueue).toHaveBeenCalledOnce();
     await vi.runAllTimersAsync();

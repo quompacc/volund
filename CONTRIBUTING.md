@@ -20,6 +20,7 @@ the fix. Documentation-only changes do not require a new test.
 Before a milestone commit, run all relevant checks:
 
 ```sh
+sh scripts/check-line-limit.sh
 cargo fmt --all -- --check
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings

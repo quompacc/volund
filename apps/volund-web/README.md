@@ -16,9 +16,17 @@ npm run build
 ```
 
 For local development, `npm run dev` proxies `/api` to the loopback VÖLUND API.
+Set `VOLUND_API_PROXY` to use another daemon, for example through an SSH tunnel
+(`VOLUND_API_PROXY=http://127.0.0.1:18080 npm run dev`). If that instance uses
+secure cookies, also set `VOLUND_API_SECURE_COOKIES=true` so mutations pass its
+same-origin check.
 Production assets are installed at `/usr/share/volund/web` and remain read-only
 to the API systemd service.
 
-The import view sends only selected file paths and sizes to the preview API. It
-does not read or upload file contents. Selected directories therefore produce a
-real persisted draft, while archive-content streaming remains a later stage.
+The import view first sends only selected file paths and sizes to the preview
+API, which creates a persisted draft. After the metadata step it streams each
+file into the isolated staging area (ADR 0014); the daemon expands uploaded ZIP
+archives there. The library changes only when the reviewed draft is committed.
+
+The interface supports System, Light, and Dark themes. All colours are tokens in
+`src/theme.css`; component styles must not hard-code colours.

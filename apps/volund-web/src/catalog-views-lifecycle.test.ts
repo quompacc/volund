@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { catalogApi, identityApi } from "./api";
-import { mountMockView } from "./mockup";
+import { mountCatalogView } from "./catalog-views";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -16,7 +16,7 @@ describe("view request lifecycle", () => {
     const host = document.createElement("main");
     document.body.append(host);
 
-    const dispose = mountMockView(host, "model-problems", vi.fn(), "model-1", true, true);
+    const dispose = mountCatalogView(host, "model-problems", vi.fn(), "model-1", true, true);
     dispose();
     host.innerHTML = '<p id="current-view">Aktuelle Ansicht</p>';
     resolveModel({ id: "model-1", name: "Verspätetes Modell" } as never);

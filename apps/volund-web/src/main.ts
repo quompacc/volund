@@ -12,7 +12,7 @@ import type { AppView } from "./app-state";
 import { requireSession } from "./auth";
 import { onSessionExpired } from "./session-expiry";
 import { mountNavigationScroll } from "./navigation-scroll";
-import { mountMockView } from "./mockup";
+import { mountCatalogView } from "./catalog-views";
 import { mountRawCatalog } from "./raw-catalog";
 import type { CurrentSession } from "./types";
 import { applyThemePreference, browserThemeStorage, mountThemeToggle, readThemePreference } from "./theme";
@@ -69,7 +69,7 @@ function mountApplication(session: CurrentSession): void {
     });
     if (view === "raw") disposeView = mountRawCatalog(workspace);
     else if (view === "administration") disposeView = mountAdministration(workspace, session);
-    else disposeView = mountMockView(workspace, view, navigate, modelId, canEdit, canAdminister);
+    else disposeView = mountCatalogView(workspace, view, navigate, modelId, canEdit, canAdminister);
   };
   app.querySelectorAll<HTMLElement>("[data-view]").forEach((element) => {
     element.addEventListener("click", () => navigate(element.dataset.view as AppView));

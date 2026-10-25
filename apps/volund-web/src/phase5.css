@@ -90,7 +90,7 @@ main p:not(.eyebrow), main small, main label, main dt, main dd, main code, main 
 }
 .eyebrow, .nav-group > p, .section-tools > span { font-size: 12px !important; }
 .nav-group > p, .nav-group b, .nav-foot p { color: var(--text-muted); }
-.mock-view-host { height: 100%; min-height: 0; }
+.catalog-view-host { height: 100%; min-height: 0; }
 
 .catalog-history { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
 .catalog-history summary { min-height: 44px; padding: 10px 0; cursor: pointer; }

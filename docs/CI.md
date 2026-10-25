@@ -25,12 +25,14 @@ The runner needs:
 
 The native quality job runs:
 
-1. Rust formatting and Clippy with warnings denied;
-2. all web tests, the production web build, and npm advisory audit;
-3. the native OpenCascade release build and all CTests;
-4. all Rust unit, HTTP-contract, Linux, PostgreSQL, job-runner, preview, and
+1. the 600-line limit for handwritten code files
+   (`scripts/check-line-limit.sh`; `@generated` files are exempt);
+2. Rust formatting and Clippy with warnings denied;
+3. all web tests, the production web build, and npm advisory audit;
+4. the native OpenCascade release build and all CTests;
+5. all Rust unit, HTTP-contract, Linux, PostgreSQL, job-runner, preview, and
    scanner tests against `volund_ci_test`;
-5. RustSec against the complete lockfile with only the reviewed exception in
+6. RustSec against the complete lockfile with only the reviewed exception in
    [the advisory register](security/advisory-exceptions.md).
 
 After that job succeeds, GitHub creates the source archive twice from the same

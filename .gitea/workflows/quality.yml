@@ -54,6 +54,9 @@ jobs:
           cmake --version
           psql --version
 
+      - name: Enforce handwritten file line limit
+        run: sh scripts/check-line-limit.sh
+
       - name: Install locked web dependencies
         working-directory: apps/volund-web
         run: npm ci

@@ -1,6 +1,10 @@
-# ADR 0020: Persist model maintenance and presentation orientation
+# ADR 0028: Persist model maintenance and presentation orientation
 
 Status: Accepted
+
+This record was first filed as ADR 0020, a number also used by
+[ADR 0020: Typed instance settings](0020-typed-instance-settings-and-secrets.md).
+It was renumbered to keep record numbers unique; its decision is unchanged.
 
 ## Context
 

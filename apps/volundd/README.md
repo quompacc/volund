@@ -150,7 +150,9 @@ The global lock is `/srv/volund/scratch/cad-convert.lock`. `flock` releases it
 automatically if `volundd` or the host terminates, so no stale lock recovery is
 needed. Time spent waiting for the lock does not consume the conversion timeout.
 
-The runner does not claim to be the final persistent queue. PostgreSQL-backed
-submission and restart recovery will be added with the API. This layer already
-provides the process isolation, state layout, timeout behavior, and single-job
-invariant that the later queue will reuse.
+This runner is the execution layer below the PostgreSQL-backed preview queue
+([ADR 0007](../../docs/adr/0007-durable-preview-queue.md)): the queue persists
+requests and claims them one at a time, while this layer provides the process
+isolation, state layout, timeout behavior, and single-job invariant. Worker
+restart, running-job cancellation, and orphaned-lease recovery are still under
+the E.2 acceptance gate (see [SUPPORT.md](../../SUPPORT.md)).

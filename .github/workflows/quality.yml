@@ -65,6 +65,9 @@ jobs:
           test -x deploy/backup/tests/backup-test.sh
           test -x deploy/backup/volund-backup
 
+      - name: Enforce handwritten file line limit
+        run: sh scripts/check-line-limit.sh
+
       - name: Install locked web dependencies
         working-directory: apps/volund-web
         run: npm ci

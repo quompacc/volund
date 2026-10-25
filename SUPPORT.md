@@ -21,8 +21,8 @@ general platform compatibility or a declaration of full production readiness.
 | Browser/context | Status |
 | --- | --- |
 | Current Chromium desktop | Primary tested browser; several authenticated flows have real-browser evidence |
-| Current Firefox desktop | Automated web logic is browser-neutral, but the complete real Firefox acceptance matrix remains open |
-| Narrow/mobile layout | Responsive rules exist; complete navigation, dialog, keyboard, and viewport acceptance remains open |
+| Current Firefox desktop | Reproducible WebDriver responsive matrix (119 cases, 200 % zoom, touch/mouse, history, native dialogs) passes; keyboard, offline, timeout, and stale-response acceptance remains open |
+| Narrow/mobile layout | Firefox and Chromium responsive matrices (seven viewports, synthetic data) pass; keyboard and real-device acceptance remains open |
 | JavaScript disabled | Unsupported; the browser application requires JavaScript |
 
 ## Content handling
@@ -36,17 +36,18 @@ catalog does not guarantee a generated 3D preview.
 
 - The full portable metadata/model export and complete independent exit package
   are not implemented.
-- The full Firefox, responsive, keyboard, offline, timeout, and stale-response
-  browser matrix is incomplete.
+- The keyboard, offline, timeout, and stale-response browser acceptance is
+  incomplete; the automated Firefox and Chromium responsive matrices pass.
 - Large-assembly performance around the 1,500-mesh target and repeated viewer
   resource release have not completed their final acceptance measurements.
 - Worker restart, running-job cancellation, orphaned leases, converter timeout,
   and recovery remain under the E.2 audit gate.
 - The complete slicer handoff safety and unavailable-target behavior remain
   under G.4.
-- Clean installation, candidate upgrade/rollback, systemd boot, and external
-  proxy acceptance remain under J.1–J.4. The tagged 0.38.3 deployment history
-  does not close those gates for current `Unreleased` changes.
+- Candidate upgrade/rollback, systemd boot, and external proxy acceptance remain
+  under J.2–J.4. Clean installation (J.1) passed for 0.39.0 in an empty Debian 13
+  rootfs. The tagged deployment history does not close any gate for current
+  `Unreleased` changes.
 - VÖLUND is designed for a single instance and a small trusted team. Public
   multi-tenant SaaS operation is outside the current security model.
 - No independent security review has been completed.

@@ -19,7 +19,7 @@ import { CadViewer, restoreViewerStage } from "./viewer";
 
 type Navigate = (view: AppView, modelId?: string) => void;
 
-export function mountMockView(
+export function mountCatalogView(
   host: HTMLElement,
   view: Exclude<AppView, "raw" | "administration">,
   navigate: Navigate,
@@ -29,7 +29,7 @@ export function mountMockView(
 ): () => void {
   const cleanup: Array<() => void> = [];
   const viewHost = document.createElement("div");
-  viewHost.className = "mock-view-host";
+  viewHost.className = "catalog-view-host";
   host.replaceChildren(viewHost);
   cleanup.push(() => viewHost.remove());
   if (view === "dashboard" || view === "models") mountModelCatalog(viewHost, view);
