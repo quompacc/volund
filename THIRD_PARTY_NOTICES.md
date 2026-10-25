@@ -21,7 +21,7 @@ Für `wasite 0.1.0` wird die angebotene
 - PDF.js / pdfjs-dist 6.2.108: Apache-2.0, Mozilla-Copyrightvermerk erhalten;
   zusätzliche BSD-/MIT-/OFL-Hinweise für mitgelieferte Zusatzassets ebenfalls
   aufgenommen. Diese Assets stehen weiterhin unter ihren eigenen Lizenzen.
-- Vite 8.2.2: MIT-Kernlizenz für vom Build erzeugte Browserhelfer erhalten.
+- Vite 8.3.5: MIT-Kernlizenz für vom Build erzeugte Browserhelfer erhalten.
 
 Die [Browserhinweise](apps/volund-web/public/THIRD_PARTY_NOTICES.txt) und
 der [AGPL-Text](apps/volund-web/public/LICENSE.txt) werden von Vite unverändert

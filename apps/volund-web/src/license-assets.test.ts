@@ -28,7 +28,7 @@ describe("Lizenzvertrag", () => {
       const original = readFileSync(new URL(`../node_modules/${relative}`, import.meta.url), "utf8");
       expect(notices).toContain(original.replaceAll("\r\n", "\n").trimEnd());
     }
-    expect(notices).toContain("Vite 8.2.2 / MIT-Kernlizenz");
+    expect(notices).toContain("Vite 8.3.5 / MIT-Kernlizenz");
     expect(notices).toContain("Copyright 2024 Mozilla Foundation");
   });
 });

@@ -40,6 +40,11 @@ until a signed release tag is created.
 
 ### Fixed
 
+- CI-Schritt „Test and build web application“ war seit dem 2026-10-25 rot,
+  weil `npm audit` neue Sicherheitsmeldungen für Buildwerkzeuge meldete. Vite
+  8.3.5, Vitest 4.1.12 und happy-dom 21.0.4 schließen sie; Lizenzinventar und
+  Vite-Hinweis sind nachgezogen. Der ausgelieferte Browsercode war nicht
+  betroffen.
 - Die Tag-Vorschläge im Importformular klappen nicht mehr von selbst auf, sobald
   die Tag-Liste geladen ist, sondern erst, wenn das Tag-Feld fokussiert ist.
 
