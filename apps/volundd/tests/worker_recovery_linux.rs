@@ -159,7 +159,7 @@ fn stop(pid: u32) {
 }
 
 #[tokio::test]
-async fn restarted_worker_recovers_expired_claims_and_preserves_cancellation() {
+async fn restarted_worker_recovers_lost_claims_at_once_and_preserves_cancellation() {
     for cancel in [false, true] {
         let Some(f) = Fixture::new().await else {
             return;
@@ -189,21 +189,23 @@ async fn restarted_worker_recovers_expired_claims_and_preserves_cancellation() {
         if cancel {
             f.action(&f.job, "cancel").await;
         }
+        leases_released(&f.db).await;
+        // The killed worker's lease vanished with its database session, so the
+        // very next worker invocation recovers the claim without any expiry wait.
         let config = f.config("ready", 10);
-        assert!(spawn_worker(&config).wait().await.unwrap().success());
-        let status = volundd::job_admin::get(&f.db, "conversion", &f.job)
-            .await
-            .unwrap();
-        assert_eq!(
-            status.status, "running",
-            "fresh claims must not be stolen on restart"
-        );
-        // Exercise the real expiry query without a two-hour wall-clock sleep.
-        sqlx::query("UPDATE volund.conversion_runs SET requested_at=now()-interval '4 hours',started_at=now()-interval '3 hours' WHERE public_id::text=$1")
-            .bind(&f.job).execute(&*f.db).await.unwrap();
         assert!(spawn_worker(&config).wait().await.unwrap().success());
         f.assert_terminal(&f.job, if cancel { "cancelled" } else { "failed" }, 0)
             .await;
+        if !cancel {
+            let diagnostics: Value = sqlx::query_scalar(
+                "SELECT diagnostics FROM volund.conversion_runs WHERE public_id::text=$1",
+            )
+            .bind(&f.job)
+            .fetch_one(&*f.db)
+            .await
+            .unwrap();
+            assert!(diagnostics.to_string().contains("worker stopped"));
+        }
         let retry = f.action(&f.job, "retry").await;
         assert_eq!(retry["attempt"], 2);
         assert_eq!(retry["retryOfId"], f.job);
@@ -211,6 +213,108 @@ async fn restarted_worker_recovers_expired_claims_and_preserves_cancellation() {
         f.assert_terminal(retry["id"].as_str().unwrap(), "ready", 5)
             .await;
     }
+}
+
+/// Wait until the database has ended the killed worker's session and its leases.
+async fn leases_released(db: &sqlx::PgPool) {
+    tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let held: i64 = sqlx::query_scalar(
+                "SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND objsubid=2                  AND classid::bigint IN (860756369, 860756370)",
+            )
+            .fetch_one(db)
+            .await
+            .unwrap();
+            if held == 0 {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("killed worker sessions must end");
+}
+
+fn process_group(pid: u32) -> u32 {
+    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).unwrap();
+    stat.rsplit_once(") ")
+        .unwrap()
+        .1
+        .split_whitespace()
+        .nth(2)
+        .unwrap()
+        .parse()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn live_claims_are_not_stolen_and_lost_claims_do_not_stall_the_queue() {
+    let Some(f) = Fixture::new().await else {
+        return;
+    };
+    let mut worker = spawn_worker(&f.config("slow", 30));
+    let pids = f.started().await;
+    // A concurrent worker invocation must leave the leased, running claim alone.
+    let idle = preview_pipeline::process_next(&f.db, &f.config("ready", 10))
+        .await
+        .unwrap();
+    assert!(idle.is_none(), "the single conversion slot is taken");
+    let status = volundd::job_admin::get(&f.db, "conversion", &f.job)
+        .await
+        .unwrap();
+    assert_eq!(status.status, "running");
+    let group = process_group(pids[0]);
+    worker.kill().await.unwrap();
+    let _ = std::process::Command::new("/bin/kill")
+        .args(["-KILL", "--", &format!("-{group}")])
+        .status();
+    for pid in pids {
+        stop(pid);
+    }
+    leases_released(&f.db).await;
+    // With concurrency 1 a lost claim used to block every queued job for hours.
+    let source: String = sqlx::query_scalar("SELECT public_id::text FROM volund.source_files")
+        .fetch_one(&*f.db)
+        .await
+        .unwrap();
+    let next = preview_pipeline::enqueue(&f.db, &source, "fine")
+        .await
+        .unwrap()
+        .id;
+    let report = preview_pipeline::process_next(&f.db, &f.config("ready", 10))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.id, next);
+    f.assert_terminal(&f.job, "failed", 0).await;
+    f.assert_terminal(&next, "ready", 5).await;
+}
+
+#[tokio::test]
+async fn conversion_finished_elsewhere_is_never_published_over() {
+    let Some(f) = Fixture::new().await else {
+        return;
+    };
+    let config = f.config("slow", 30);
+    let pool = f.db.clone();
+    let worker = tokio::spawn(async move { preview_pipeline::process_next(&pool, &config).await });
+    let pids = f.started().await;
+    sqlx::query("UPDATE volund.conversion_runs SET status='failed',finished_at=now() WHERE public_id::text=$1")
+        .bind(&f.job)
+        .execute(&*f.db)
+        .await
+        .unwrap();
+    // Let the converter finish and publish its output directory.
+    stop(pids[1]);
+    let report = tokio::time::timeout(Duration::from_secs(10), worker)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.status, "lost");
+    assert!(f.root.join("published").exists());
+    f.assert_terminal(&f.job, "failed", 0).await;
 }
 
 fn spawn_worker(config: &PreviewWorkerConfig) -> tokio::process::Child {

@@ -8,11 +8,13 @@ use tokio::process::Command;
 use volund_core::{CAD_CONVERT_CONTRACT_VERSION, normalize_library_path};
 
 use crate::file_hash::sha256_file;
+use crate::preview_claim::{self, ClaimedRun};
 
 const DEFAULT_DERIVED_ROOT: &str = "/srv/volund/derived";
 const DEFAULT_SCRATCH_ROOT: &str = "/srv/volund/scratch";
 const DEFAULT_CONVERTER: &str = "/usr/local/bin/volund-cad-convert";
 const DEFAULT_TIMEOUT_SECONDS: u64 = 1800;
+const CLAIM_LOST: &str = "conversion claim was lost before completion";
 
 #[derive(Clone, Debug)]
 pub struct PreviewWorkerConfig {
@@ -98,16 +100,6 @@ pub struct PreviewRequest {
 pub struct ProcessReport {
     pub id: String,
     pub status: String,
-}
-
-struct ClaimedRun {
-    id: i64,
-    public_id: String,
-    content_id: i64,
-    sha256: String,
-    profile: String,
-    linear_deflection: Option<f64>,
-    angular_deflection: Option<f64>,
 }
 
 /// Enqueue or reuse the latest suitable preview request for a source file.
@@ -214,31 +206,28 @@ pub async fn process_next(
     pool: &PgPool,
     config: &PreviewWorkerConfig,
 ) -> Result<Option<ProcessReport>, String> {
-    let Some(run) = claim_next(pool).await? else {
+    let Some((run, lease)) = preview_claim::claim_next(pool).await? else {
         return Ok(None);
     };
-    let outcome = execute_claimed(pool, config, &run).await;
-    match outcome {
-        Ok(()) => Ok(Some(ProcessReport {
-            id: run.public_id,
-            status: "ready".to_owned(),
-        })),
-        Err(message) => {
-            if message == "conversion cancellation requested" {
-                mark_cancelled(pool, run.id).await?;
-            } else {
-                mark_failed(pool, run.id, &message).await?;
-            }
-            Ok(Some(ProcessReport {
-                id: run.public_id,
-                status: if message == "conversion cancellation requested" {
-                    "cancelled".to_owned()
-                } else {
-                    "failed".to_owned()
-                },
-            }))
+    let status = match execute_claimed(pool, config, &run).await {
+        Ok(()) => "ready",
+        Err(message) if message == "conversion cancellation requested" => {
+            mark_cancelled(pool, run.id).await?;
+            "cancelled"
         }
-    }
+        Err(message) if message == CLAIM_LOST => "lost",
+        Err(message) => {
+            mark_failed(pool, run.id, &message).await?;
+            "failed"
+        }
+    };
+    // Release only after the terminal state is durable; an early error drops
+    // the lease connection and leaves the run to orphan recovery.
+    lease.release().await;
+    Ok(Some(ProcessReport {
+        id: run.public_id,
+        status: status.to_owned(),
+    }))
 }
 
 /// Process one bounded parallel batch. # Errors Returns policy, claim, task, or worker failure.
@@ -258,76 +247,18 @@ pub async fn process_batch(
         tasks.spawn(async move { process_next(&pool, &config).await });
     }
     let mut reports = Vec::new();
+    let mut first_error = None;
+    // Let sibling conversions finish; aborting them would orphan their claims.
     while let Some(result) = tasks.join_next().await {
-        if let Some(report) =
-            result.map_err(|error| format!("preview worker task failed: {error}"))??
-        {
-            reports.push(report);
+        match result.map_err(|error| format!("preview worker task failed: {error}")) {
+            Ok(Ok(Some(report))) => reports.push(report),
+            Ok(Ok(None)) => {}
+            Ok(Err(error)) | Err(error) => {
+                first_error.get_or_insert(error);
+            }
         }
     }
-    Ok(reports)
-}
-
-async fn claim_next(pool: &PgPool) -> Result<Option<ClaimedRun>, String> {
-    sqlx::query(
-        "UPDATE volund.conversion_runs SET \
-         status = CASE WHEN cancellation_requested_at IS NULL THEN 'failed' ELSE 'cancelled' END, \
-         finished_at = now(), diagnostics = CASE WHEN cancellation_requested_at IS NULL \
-         THEN jsonb_build_array(jsonb_build_object('message', 'stale worker recovered')) ELSE '[]'::jsonb END \
-         WHERE status = 'running' AND started_at < now() - interval '2 hours'",
-    )
-    .execute(pool)
-    .await
-    .map_err(|error| format!("cannot recover stale preview jobs: {error}"))?;
-    let limit = crate::operational_policy::resolve(pool)
-        .await
-        .map_err(|_| "cannot load conversion concurrency".to_owned())?
-        .conversion_concurrency;
-    let mut tx = pool
-        .begin()
-        .await
-        .map_err(|error| format!("cannot begin preview claim: {error}"))?;
-    sqlx::query("SELECT pg_advisory_xact_lock(860756368,2)")
-        .execute(&mut *tx)
-        .await
-        .map_err(|error| format!("cannot lock preview claim: {error}"))?;
-    let running: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM volund.conversion_runs WHERE status='running'")
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(|error| format!("cannot count preview claims: {error}"))?;
-    if running >= limit {
-        tx.rollback().await.ok();
-        return Ok(None);
-    }
-    let row = sqlx::query(
-        "UPDATE volund.conversion_runs run SET status = 'running', started_at = now(), \
-         converter_version = $1 WHERE run.id = ( \
-          SELECT queued.id FROM volund.conversion_runs queued \
-          WHERE queued.status = 'queued' AND queued.cancellation_requested_at IS NULL \
-          ORDER BY queued.requested_at, queued.id \
-          FOR UPDATE SKIP LOCKED LIMIT 1) \
-         RETURNING run.id, run.public_id::text, run.content_object_id, \
-          (SELECT sha256 FROM volund.content_objects WHERE id = run.content_object_id), run.profile, \
-          (run.profile_snapshot->>'linearDeflection')::double precision, \
-          (run.profile_snapshot->>'angularDeflection')::double precision",
-    )
-    .bind(env!("CARGO_PKG_VERSION"))
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(|error| format!("cannot claim preview job: {error}"))?;
-    tx.commit()
-        .await
-        .map_err(|error| format!("cannot commit preview claim: {error}"))?;
-    Ok(row.map(|row| ClaimedRun {
-        id: row.get(0),
-        public_id: row.get(1),
-        content_id: row.get(2),
-        sha256: row.get(3),
-        profile: row.get(4),
-        linear_deflection: row.get(5),
-        angular_deflection: row.get(6),
-    }))
+    first_error.map_or(Ok(reports), Err)
 }
 
 async fn execute_claimed(
@@ -434,13 +365,17 @@ async fn persist_ready(
         ));
     }
     let mut transaction = pool.begin().await.map_err(|error| error.to_string())?;
-    let cancelled: bool = sqlx::query_scalar(
-        "SELECT cancellation_requested_at IS NOT NULL FROM volund.conversion_runs WHERE id = $1 FOR UPDATE",
+    let (status, cancelled): (String, bool) = sqlx::query_as(
+        "SELECT status, cancellation_requested_at IS NOT NULL FROM volund.conversion_runs WHERE id = $1 FOR UPDATE",
     )
     .bind(run.id)
     .fetch_one(&mut *transaction)
     .await
     .map_err(|error| format!("cannot lock conversion completion: {error}"))?;
+    if status != "running" {
+        // Another worker already finished this run; never publish over it.
+        return Err(CLAIM_LOST.to_owned());
+    }
     if cancelled {
         sqlx::query(
             "UPDATE volund.conversion_runs SET status = 'cancelled', finished_at = now(), diagnostics = '[]'::jsonb WHERE id = $1",

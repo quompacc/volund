@@ -46,6 +46,15 @@ until a signed release tag is created.
 
 ### Fixed
 
+- Worker-Leases nach ADR 0030: Vorschau- und Scan-Worker halten jeden
+  übernommenen Job über eine Sitzungssperre der Datenbank. Stirbt ein Worker
+  (OOM, Neustart, Kill), erkennt der nächste Worker-Lauf den verwaisten Job
+  sofort statt nach zwei Stunden; die Warteschlange bleibt bei Parallelität 1
+  nicht mehr stehen. Verlorene Konvertierungen werden „fehlgeschlagen“
+  (manueller Retry), verlorene Scans neu eingereiht und nach drei verlorenen
+  Versuchen als fehlgeschlagen beendet. Späte Abschlüsse eines bereits
+  übernommenen Laufs veröffentlichen nichts mehr, und ein Fehler in einem
+  Batch-Task bricht parallele Jobs nicht mehr ab.
 - RustSec meldet für `zip 4.6.1` drei Lücken in `ZipArchive::extract` und
   `ZipStreamReader::extract`. VÖLUND ruft beide nicht auf; der ZIP-Import liest
   Einträge einzeln und weist Symlinks und Sonderdateien ab. Die Ausnahme ist im

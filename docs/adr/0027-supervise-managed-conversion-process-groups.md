@@ -46,7 +46,8 @@ whole service process tree. The isolated restart test explicitly stops its owned
 worker and runner group before starting a new worker executable; it does not
 restart an installed service.
 
-Existing two-hour stale-claim recovery remains unchanged. Fresh running claims
+Existing two-hour stale-claim recovery remains unchanged (since replaced by the
+leases of [ADR 0030](0030-worker-leases-and-recovery.md)). Fresh running claims
 are not stolen immediately on restart. Expired conversions become failed or
 cancelled and can be explicitly retried; expired scans are requeued or cancelled.
 No new heartbeat lease, immediate orphan detection, or systemd deployment is

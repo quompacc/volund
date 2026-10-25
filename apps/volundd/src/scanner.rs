@@ -9,7 +9,7 @@ use volund_core::{CadFormat, ContentHash, normalize_library_path};
 use crate::file_hash::sha256_file;
 use crate::scan_control;
 
-const SCAN_LOCK_NAMESPACE: i64 = 6_219_273_558_347_087_872;
+pub(crate) const SCAN_LOCK_NAMESPACE: i64 = 6_219_273_558_347_087_872;
 const QUARANTINE_DIRECTORY: &str = ".volund-quarantine";
 
 #[derive(Debug, Eq, PartialEq)]
@@ -470,9 +470,10 @@ async fn persist_scan(
     .map_err(|_| "missing file count overflow".to_owned())?;
     let discovered_files =
         i64::try_from(discovered.len()).map_err(|_| "discovered file count overflow".to_owned())?;
-    sqlx::query(
+    let completed = sqlx::query(
         "UPDATE volund.scan_runs SET status = 'completed', finished_at = now(), \
-         discovered_files = $2, hashed_files = $3, missing_files = $4 WHERE id = $1",
+         error_message = NULL, discovered_files = $2, hashed_files = $3, missing_files = $4 \
+         WHERE id = $1 AND status = 'running'",
     )
     .bind(scan_id)
     .bind(discovered_files)
@@ -480,7 +481,12 @@ async fn persist_scan(
     .bind(missing_files)
     .execute(&mut *transaction)
     .await
-    .map_err(|error| format!("cannot complete scan run: {error}"))?;
+    .map_err(|error| format!("cannot complete scan run: {error}"))?
+    .rows_affected();
+    if completed != 1 {
+        // Dropping the transaction rolls back every catalog change of this run.
+        return Err("scan claim was lost before completion".to_owned());
+    }
     transaction
         .commit()
         .await

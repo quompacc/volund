@@ -323,14 +323,25 @@ async fn reduced_limits_do_not_interrupt_running_work_or_claim_more() {
     }
     let root = std::env::temp_dir().join("volund-concurrency-limit");
     fs::create_dir_all(&root).unwrap();
+    // Running rows belong to a live worker only while its lease is held.
+    let mut worker = pool.acquire().await.unwrap();
     for index in 0..2 {
         let library:i64=sqlx::query_scalar("INSERT INTO volund.library_roots (root_key,display_name,filesystem_path) VALUES ($1,$1,$2) RETURNING id").bind(format!("limit_{index}")).bind(root.join(index.to_string()).to_string_lossy().as_ref()).fetch_one(&*pool).await.unwrap();
-        sqlx::query("INSERT INTO volund.scan_runs (library_root_id,status) VALUES ($1,$2)")
-            .bind(library)
-            .bind(if index == 0 { "running" } else { "queued" })
-            .execute(&*pool)
-            .await
-            .unwrap();
+        let scan: i64 = sqlx::query_scalar(
+            "INSERT INTO volund.scan_runs (library_root_id,status) VALUES ($1,$2) RETURNING id",
+        )
+        .bind(library)
+        .bind(if index == 0 { "running" } else { "queued" })
+        .fetch_one(&*pool)
+        .await
+        .unwrap();
+        if index == 0 {
+            sqlx::query("SELECT pg_advisory_lock(860756370, $1::integer)")
+                .bind(scan)
+                .execute(&mut *worker)
+                .await
+                .unwrap();
+        }
     }
     assert!(scan_pipeline::process_next(&pool).await.unwrap().is_none());
     let states: Vec<String> = sqlx::query_scalar("SELECT status FROM volund.scan_runs ORDER BY id")
@@ -351,7 +362,14 @@ async fn reduced_limits_do_not_interrupt_running_work_or_claim_more() {
         .fetch_one(&*pool)
         .await
         .unwrap();
-        sqlx::query("INSERT INTO volund.conversion_runs (content_object_id,converter_name,converter_version,contract_version,profile,status,started_at,conversion_profile_id,conversion_profile_revision,profile_snapshot) VALUES ($1,'volund-cad-convert','test',1,'web',$2,CASE WHEN $2='running' THEN now() END,$3,1,'{\"nativePreset\":\"web\"}')").bind(content).bind(if index==0{"running"}else{"queued"}).bind(profile).execute(&*pool).await.unwrap();
+        let run: i64 = sqlx::query_scalar("INSERT INTO volund.conversion_runs (content_object_id,converter_name,converter_version,contract_version,profile,status,started_at,conversion_profile_id,conversion_profile_revision,profile_snapshot) VALUES ($1,'volund-cad-convert','test',1,'web',$2,CASE WHEN $2='running' THEN now() END,$3,1,'{\"nativePreset\":\"web\"}') RETURNING id").bind(content).bind(if index==0{"running"}else{"queued"}).bind(profile).fetch_one(&*pool).await.unwrap();
+        if index == 0 {
+            sqlx::query("SELECT pg_advisory_lock(860756369, $1::integer)")
+                .bind(run)
+                .execute(&mut *worker)
+                .await
+                .unwrap();
+        }
     }
     let config = preview_pipeline::PreviewWorkerConfig::new(
         "/bin/false".into(),
@@ -367,6 +385,10 @@ async fn reduced_limits_do_not_interrupt_running_work_or_claim_more() {
             .unwrap()
             .is_none()
     );
+    sqlx::query("SELECT pg_advisory_unlock_all()")
+        .execute(&mut *worker)
+        .await
+        .unwrap();
     fs::remove_dir_all(root).unwrap();
 }
 

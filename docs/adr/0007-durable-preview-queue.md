@@ -21,7 +21,9 @@ recalculates the source SHA-256 before invoking the existing flock- and
 timeout-guarded conversion runner. It publishes five artifacts only after all
 are present and individually hashed. The database transition to `ready` and all
 artifact rows commit atomically. Failures retain diagnostics. Running jobs older
-than two hours are marked failed before another claim.
+than two hours are marked failed before another claim. (Superseded by
+[ADR 0030](0030-worker-leases-and-recovery.md): claims are leased, and a lost
+claim is recovered by the next claim.)
 
 A systemd oneshot service and timer poll the queue. The service sees the CAD
 library read-only and can write only derived and scratch storage.
