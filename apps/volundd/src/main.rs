@@ -390,21 +390,29 @@ async fn main() -> ExitCode {
         }
         Some(command) if command == "convert" => match job_runner::run_convert(arguments) {
             Ok(()) => ExitCode::SUCCESS,
-            Err(message) => {
-                eprintln!("job failed: {message}");
-                ExitCode::FAILURE
+            Err(failure) => {
+                eprintln!("job failed: {}", failure.message);
+                job_failure_exit(&failure)
             }
         },
         Some(command) if command == "_execute-job" => match job_runner::execute_job(arguments) {
             Ok(()) => ExitCode::SUCCESS,
-            Err(message) => {
-                eprintln!("job execution failed: {message}");
-                ExitCode::FAILURE
+            Err(failure) => {
+                eprintln!("job execution failed: {}", failure.message);
+                job_failure_exit(&failure)
             }
         },
         _ => {
             job_runner::print_usage();
             ExitCode::from(2)
         }
+    }
+}
+
+fn job_failure_exit(failure: &job_runner::JobFailure) -> ExitCode {
+    if failure.timed_out {
+        ExitCode::from(job_runner::TIMED_OUT_EXIT)
+    } else {
+        ExitCode::FAILURE
     }
 }

@@ -85,7 +85,11 @@ fn timeout_moves_the_job_to_failed() {
     fs::write(&input, "synthetic input").expect("write input");
 
     let mut job = spawn_job(&root, &input, 1);
-    assert!(!wait(&mut job).success());
+    assert_eq!(
+        wait(&mut job).code(),
+        Some(124),
+        "timeouts keep GNU timeout's status"
+    );
     let metadata = failed_job_metadata(&root);
     assert!(metadata.contains("\"state\": \"failed\""));
     assert!(metadata.contains("exceeded the 1 second limit"));

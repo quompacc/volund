@@ -60,6 +60,14 @@ until a signed release tag is created.
   der Job wieder eingereiht (höchstens dreimal). Die systemd-Beispielunits
   setzen `KillMode=mixed`, `TimeoutStopSec=30s` und für den Vorschau-Worker
   `OOMPolicy=continue`, damit ein OOM-beendeter Konverter nicht die Unit stoppt.
+- Konvertierungs-Timeouts zählen erst ab Erhalt der Konvertierungssperre; bei
+  `jobs.conversionConcurrency` > 1 scheitern wartende Jobs nicht mehr fälschlich
+  am Timeout. Die 30-Sekunden-Gnadenfrist von SIGTERM bis SIGKILL greift jetzt
+  tatsächlich, und Zeitüberschreitungen erhalten den Status „timed-out“ statt
+  „failed“ (Exit-Status 124 bei `volundd convert`).
+- Eigene Konvertierungsprofile mit Mesh-Deflection scheiterten immer, weil
+  `volundd convert` `--linear-deflection`/`--angular-deflection` ablehnte; die
+  Werte werden jetzt geprüft und an den Konverter weitergereicht.
 - RustSec meldet für `zip 4.6.1` drei Lücken in `ZipArchive::extract` und
   `ZipStreamReader::extract`. VÖLUND ruft beide nicht auf; der ZIP-Import liest
   Einträge einzeln und weist Symlinks und Sonderdateien ab. Die Ausnahme ist im

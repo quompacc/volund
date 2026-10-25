@@ -59,6 +59,26 @@ units use `KillMode=mixed` so that SIGTERM reaches only the worker, and
 a converter killed by the memory limit fails its job instead of stopping the
 unit and requeueing the same conversion.
 
+### Time limits
+
+The conversion time limit now applies only to the conversion. The runner prints
+`state=running` after it obtains the host-wide conversion lock, and the worker
+starts its outer bound there. That bound is the limit plus the runner's
+30-second TERM-to-KILL grace plus a 5-second margin, so GNU `timeout` can
+terminate the converter gracefully and publish the job under `failed/`.
+Previously the outer bound was the limit plus one second from spawn. It killed
+the runner before its own timeout handling ran, and with
+`jobs.conversionConcurrency` above 1 it timed out jobs that were only waiting
+for the lock. Those waiting runs still show as `running`.
+
+A timeout now records the existing `timed-out` status instead of `failed`. The
+runner reports it with `state=timed-out` and exit status 124. This amends
+ADR 0027, which kept timeouts as `failed`.
+
+The runner also accepts the `--linear-deflection` and `--angular-deflection`
+options that the worker passes for custom profiles. Before, the runner rejected
+them, so every conversion with a custom deflection failed.
+
 No migration is needed. The wall-clock expiry is removed: a long but healthy
 conversion is never recovered, and a lost one is recovered by the next timer
 tick, normally within seconds.

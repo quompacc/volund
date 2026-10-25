@@ -244,8 +244,13 @@ pub async fn process_next_until(
             preview_claim::requeue_stopped(&mut lease, run.id).await?
         }
         Err(message) => {
-            mark_failed(pool, run.id, &message).await?;
-            "failed".to_owned()
+            let status = if message.starts_with(crate::preview_process::TIMED_OUT) {
+                "timed-out"
+            } else {
+                "failed"
+            };
+            mark_failed(pool, run.id, &message, status).await?;
+            status.to_owned()
         }
     };
     // Release only after the terminal state is durable; an early error drops
@@ -319,11 +324,11 @@ async fn execute_claimed(
         command.arg("--angular-deflection").arg(value.to_string());
     }
     let output = crate::preview_process::run(command, pool, run.id, config.timeout_seconds).await?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = &output.stdout;
     if !output.status.success() {
         return Err(format!(
             "guarded conversion failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
+            output.stderr.trim()
         ));
     }
     let ready_dir = stdout
@@ -449,15 +454,21 @@ async fn persist_ready(
         .map_err(|error| error.to_string())
 }
 
-async fn mark_failed(pool: &PgPool, run_id: i64, message: &str) -> Result<(), String> {
+async fn mark_failed(
+    pool: &PgPool,
+    run_id: i64,
+    message: &str,
+    status: &str,
+) -> Result<(), String> {
     let diagnostics = json!([{ "message": message }]).to_string();
     sqlx::query(
-        "UPDATE volund.conversion_runs SET status = 'failed', finished_at = now(), \
+        "UPDATE volund.conversion_runs SET status = $3, finished_at = now(), \
          diagnostics = $2::jsonb WHERE id = $1 AND status = 'running' \
          AND cancellation_requested_at IS NULL",
     )
     .bind(run_id)
     .bind(diagnostics)
+    .bind(status)
     .execute(pool)
     .await
     .map_err(|error| format!("cannot persist preview failure: {error}"))?;

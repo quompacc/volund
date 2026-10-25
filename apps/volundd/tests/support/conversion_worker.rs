@@ -58,9 +58,10 @@ impl Fixture {
         let action = match mode {
             "slow" => "sleep 20 &\necho $! > \"$base/child.pid\"\nwait\n",
             "fail" => "exit 42\n",
+            "pause" => "sleep 2.5\n",
             _ => "",
         };
-        fs::write(&converter, format!("#!/bin/sh\nset -eu\nbase='{}'\necho $$ > \"$base/converter.pid\"\n{action}out=\nwhile [ \"$#\" -gt 0 ]; do\nif [ \"$1\" = --output ]; then out=$2; shift 2; else shift; fi\ndone\nprintf glb > \"$out/preview.glb\"\nprintf png > \"$out/thumbnail.png\"\nprintf '{{}}' > \"$out/assembly.json\"\nprintf '[]' > \"$out/diagnostics.json\"\nprintf '{{}}' > \"$out/result.json\"\ntouch \"$base/published\"\n", self.root.display())).unwrap();
+        fs::write(&converter, format!("#!/bin/sh\nset -eu\nbase='{}'\necho $$ > \"$base/converter.pid\"\necho \"$@\" >> \"$base/args\"\n{action}out=\nwhile [ \"$#\" -gt 0 ]; do\nif [ \"$1\" = --output ]; then out=$2; shift 2; else shift; fi\ndone\nprintf glb > \"$out/preview.glb\"\nprintf png > \"$out/thumbnail.png\"\nprintf '{{}}' > \"$out/assembly.json\"\nprintf '[]' > \"$out/diagnostics.json\"\nprintf '{{}}' > \"$out/result.json\"\ntouch \"$base/published\"\n", self.root.display())).unwrap();
         fs::set_permissions(&converter, fs::Permissions::from_mode(0o750)).unwrap();
         PreviewWorkerConfig::new(
             PathBuf::from(env!("CARGO_BIN_EXE_volundd")),

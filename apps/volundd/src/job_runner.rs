@@ -9,10 +9,33 @@ const DEFAULT_CONVERTER: &str = "/usr/local/bin/volund-cad-convert";
 const DEFAULT_DERIVED_ROOT: &str = "/srv/volund/derived";
 const DEFAULT_SCRATCH_ROOT: &str = "/srv/volund/scratch";
 const DEFAULT_TIMEOUT_SECONDS: u64 = 30 * 60;
+/// Grace between the timeout's SIGTERM and its SIGKILL of the converter.
+const KILL_AFTER_SECONDS: u64 = 30;
 const FLOCK: &str = "/usr/bin/flock";
 const TIMEOUT: &str = "/usr/bin/timeout";
+/// Exit status of `convert` and `_execute-job` when the conversion timed out,
+/// matching GNU timeout.
+pub const TIMED_OUT_EXIT: u8 = 124;
+/// Placeholder for an absent optional argument of the internal executor.
+const ABSENT: &str = "-";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+/// A failed conversion job and whether it failed by exceeding its time limit.
+#[derive(Debug)]
+pub struct JobFailure {
+    pub message: String,
+    pub timed_out: bool,
+}
+
+impl From<String> for JobFailure {
+    fn from(message: String) -> Self {
+        Self {
+            message,
+            timed_out: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 struct ConvertOptions {
     input: PathBuf,
     profile: String,
@@ -20,6 +43,8 @@ struct ConvertOptions {
     derived_root: PathBuf,
     scratch_root: PathBuf,
     converter: PathBuf,
+    linear_deflection: Option<f64>,
+    angular_deflection: Option<f64>,
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +58,8 @@ struct ExecutionOptions {
     profile: String,
     timeout_seconds: u64,
     converter: PathBuf,
+    linear_deflection: Option<f64>,
+    angular_deflection: Option<f64>,
 }
 
 pub fn print_usage() {
@@ -52,18 +79,19 @@ pub fn print_usage() {
          volundd convert --input model.cad [--profile web|fine] \
          [--timeout-seconds 1800] [--derived-root /srv/volund/derived] \
          [--scratch-root /srv/volund/scratch] \
-         [--converter /usr/local/bin/volund-cad-convert]"
+         [--converter /usr/local/bin/volund-cad-convert] \
+         [--linear-deflection <mm>] [--angular-deflection <rad>]"
     );
 }
 
-pub fn run_convert(arguments: impl Iterator<Item = OsString>) -> Result<(), String> {
+pub fn run_convert(arguments: impl Iterator<Item = OsString>) -> Result<(), JobFailure> {
     let options = parse_convert_options(arguments)?;
     validate_runtime(&options)?;
 
     let input = fs::canonicalize(&options.input)
         .map_err(|error| format!("cannot resolve input {}: {error}", options.input.display()))?;
     if !input.is_file() {
-        return Err(format!("input is not a regular file: {}", input.display()));
+        return Err(format!("input is not a regular file: {}", input.display()).into());
     }
 
     fs::create_dir_all(&options.derived_root).map_err(|error| {
@@ -130,6 +158,8 @@ pub fn run_convert(arguments: impl Iterator<Item = OsString>) -> Result<(), Stri
         .arg(&options.profile)
         .arg(options.timeout_seconds.to_string())
         .arg(&options.converter)
+        .arg(optional_argument(options.linear_deflection))
+        .arg(optional_argument(options.angular_deflection))
         .status()
         .map_err(|error| format!("cannot start flock-controlled job: {error}"))?;
 
@@ -137,15 +167,32 @@ pub fn run_convert(arguments: impl Iterator<Item = OsString>) -> Result<(), Stri
         println!("state=ready");
         println!("output={}", ready_dir.display());
         Ok(())
+    } else if status.code() == Some(i32::from(TIMED_OUT_EXIT)) {
+        println!("state=timed-out");
+        println!("output={}", failed_dir.display());
+        Err(JobFailure {
+            message: format!(
+                "conversion exceeded the {} second limit",
+                options.timeout_seconds
+            ),
+            timed_out: true,
+        })
     } else {
         println!("state=failed");
         println!("output={}", failed_dir.display());
-        Err(exit_status_message(status))
+        Err(exit_status_message(status).into())
     }
 }
 
-pub fn execute_job(arguments: impl Iterator<Item = OsString>) -> Result<(), String> {
+fn optional_argument(value: Option<f64>) -> String {
+    value.map_or_else(|| ABSENT.to_owned(), |value| value.to_string())
+}
+
+pub fn execute_job(arguments: impl Iterator<Item = OsString>) -> Result<(), JobFailure> {
     let options = parse_execution_options(arguments)?;
+    // The supervising worker starts the conversion deadline at this line, so
+    // time spent waiting for the global conversion lock is not counted.
+    println!("state=running");
     write_job_metadata(
         &options.work_dir,
         &options.job_id,
@@ -162,9 +209,9 @@ pub fn execute_job(arguments: impl Iterator<Item = OsString>) -> Result<(), Stri
     if env::var_os("VOLUND_MANAGED_PROCESS_GROUP").as_deref() == Some(std::ffi::OsStr::new("1")) {
         timeout.arg("--foreground");
     }
-    let status = timeout
+    timeout
         .arg("--signal=TERM")
-        .arg("--kill-after=30s")
+        .arg(format!("--kill-after={KILL_AFTER_SECONDS}s"))
         .arg(format!("{}s", options.timeout_seconds))
         .arg(&options.converter)
         .arg("convert")
@@ -173,7 +220,14 @@ pub fn execute_job(arguments: impl Iterator<Item = OsString>) -> Result<(), Stri
         .arg("--output")
         .arg(&options.work_dir)
         .arg("--profile")
-        .arg(&options.profile)
+        .arg(&options.profile);
+    if let Some(value) = options.linear_deflection {
+        timeout.arg("--linear-deflection").arg(value.to_string());
+    }
+    if let Some(value) = options.angular_deflection {
+        timeout.arg("--angular-deflection").arg(value.to_string());
+    }
+    let status = timeout
         .status()
         .map_err(|error| format!("cannot start CAD converter: {error}"))?;
     secure_tree(&options.work_dir)?;
@@ -193,7 +247,8 @@ pub fn execute_job(arguments: impl Iterator<Item = OsString>) -> Result<(), Stri
         return Ok(());
     }
 
-    let message = if status.code() == Some(124) {
+    let timed_out = status.code() == Some(i32::from(TIMED_OUT_EXIT));
+    let message = if timed_out {
         format!(
             "conversion exceeded the {} second limit",
             options.timeout_seconds
@@ -214,7 +269,7 @@ pub fn execute_job(arguments: impl Iterator<Item = OsString>) -> Result<(), Stri
     )?;
     fs::rename(&options.work_dir, &options.failed_dir)
         .map_err(|error| format!("cannot publish job {} as failed: {error}", options.job_id))?;
-    Err(message)
+    Err(JobFailure { message, timed_out })
 }
 
 fn parse_convert_options(
@@ -227,6 +282,8 @@ fn parse_convert_options(
         derived_root: PathBuf::from(DEFAULT_DERIVED_ROOT),
         scratch_root: PathBuf::from(DEFAULT_SCRATCH_ROOT),
         converter: PathBuf::from(DEFAULT_CONVERTER),
+        linear_deflection: None,
+        angular_deflection: None,
     };
     let mut arguments = arguments;
     while let Some(argument) = arguments.next() {
@@ -245,6 +302,12 @@ fn parse_convert_options(
             "--derived-root" => options.derived_root = PathBuf::from(value),
             "--scratch-root" => options.scratch_root = PathBuf::from(value),
             "--converter" => options.converter = PathBuf::from(value),
+            "--linear-deflection" => {
+                options.linear_deflection = Some(parse_deflection(&argument, &value)?);
+            }
+            "--angular-deflection" => {
+                options.angular_deflection = Some(parse_deflection(&argument, &value)?);
+            }
             unknown => return Err(format!("unknown option: {unknown}")),
         }
     }
@@ -269,6 +332,15 @@ fn parse_convert_options(
     Ok(options)
 }
 
+fn parse_deflection(name: &OsString, value: &OsString) -> Result<f64, String> {
+    value
+        .to_string_lossy()
+        .parse::<f64>()
+        .ok()
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .ok_or_else(|| format!("{} must be a positive number", name.to_string_lossy()))
+}
+
 fn is_linux_absolute(path: &Path) -> bool {
     path.as_os_str().to_string_lossy().starts_with('/')
 }
@@ -277,10 +349,16 @@ fn parse_execution_options(
     arguments: impl Iterator<Item = OsString>,
 ) -> Result<ExecutionOptions, String> {
     let arguments: Vec<_> = arguments.collect();
-    if arguments.len() != 9 {
+    if arguments.len() != 11 {
         return Err("invalid internal executor arguments".to_owned());
     }
     let text = |index: usize| arguments[index].to_string_lossy().into_owned();
+    let optional = |index: usize| -> Result<Option<f64>, String> {
+        if arguments[index] == ABSENT {
+            return Ok(None);
+        }
+        parse_deflection(&OsString::from("internal deflection"), &arguments[index]).map(Some)
+    };
     Ok(ExecutionOptions {
         job_id: text(0),
         submitted_at_ms: text(1)
@@ -295,6 +373,8 @@ fn parse_execution_options(
             .parse()
             .map_err(|_| "invalid internal timeout".to_owned())?,
         converter: PathBuf::from(&arguments[8]),
+        linear_deflection: optional(9)?,
+        angular_deflection: optional(10)?,
     })
 }
 
@@ -468,6 +548,35 @@ mod tests {
             ]))
             .is_err()
         );
+    }
+
+    #[test]
+    fn custom_profile_deflections_are_accepted_and_validated() {
+        let options = parse_convert_options(strings(&[
+            "--input",
+            "/tmp/model.step",
+            "--linear-deflection",
+            "0.05",
+            "--angular-deflection",
+            "0.3",
+        ]))
+        .expect("deflections are valid options");
+        assert_eq!(options.linear_deflection, Some(0.05));
+        assert_eq!(options.angular_deflection, Some(0.3));
+        assert_eq!(optional_argument(options.linear_deflection), "0.05");
+        assert_eq!(optional_argument(None), ABSENT);
+        for value in ["0", "-1", "NaN", "fine"] {
+            assert!(
+                parse_convert_options(strings(&[
+                    "--input",
+                    "/tmp/model.step",
+                    "--linear-deflection",
+                    value
+                ]))
+                .is_err(),
+                "{value} must be refused"
+            );
+        }
     }
 
     #[test]

@@ -275,8 +275,13 @@ async fn converter_failure_and_timeout_are_terminal_and_retryable() {
         .unwrap()
         .unwrap()
         .unwrap();
-        assert_eq!(report.status, "failed");
-        f.assert_terminal(&f.job, "failed", 0).await;
+        let expected = if mode == "slow" {
+            "timed-out"
+        } else {
+            "failed"
+        };
+        assert_eq!(report.status, expected);
+        f.assert_terminal(&f.job, expected, 0).await;
         if mode == "slow" {
             let pids = f.started().await;
             tokio::time::timeout(Duration::from_secs(2), async {

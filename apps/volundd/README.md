@@ -148,11 +148,19 @@ and partial artifacts for inspection instead of presenting them as ready.
 
 The global lock is `/srv/volund/scratch/cad-convert.lock`. `flock` releases it
 automatically if `volundd` or the host terminates, so no stale lock recovery is
-needed. Time spent waiting for the lock does not consume the conversion timeout.
+needed. Time spent waiting for the lock does not consume the conversion timeout:
+the runner prints `state=running` once it holds the lock, and the preview worker
+starts its own bound only then. At the limit, GNU `timeout` sends SIGTERM and,
+30 seconds later, SIGKILL. The job is then published under `failed/`, the
+runner prints `state=timed-out`, and it exits with status 124. The worker
+records such a job as `timed-out`; it can be retried like a failed job.
+
+`--linear-deflection` and `--angular-deflection` pass the mesh tolerances of a
+custom conversion profile to the native converter.
 
 This runner is the execution layer below the PostgreSQL-backed preview queue
 ([ADR 0007](../../docs/adr/0007-durable-preview-queue.md)): the queue persists
 requests and claims them one at a time, while this layer provides the process
 isolation, state layout, timeout behavior, and single-job invariant. Worker
-restart, running-job cancellation, and orphaned-lease recovery are still under
-the E.2 acceptance gate (see [SUPPORT.md](../../SUPPORT.md)).
+leases, orderly stop, and the recovery of lost jobs are described in
+[ADR 0030](../../docs/adr/0030-worker-leases-and-recovery.md).
