@@ -536,6 +536,30 @@ paths:
           description: Generation failed a size, timeout, path, or cleanup safety bound.
         "403":
           description: Owner/administrator, CSRF, or same-origin verification failed.
+  /api/v1/exports/metadata:
+    post:
+      operationId: exportInstanceMetadata
+      description: >-
+        Versioned, machine-readable snapshot of all user-authored catalog
+        metadata (format volund-metadata-v1, contracts/metadata-export-v1.schema.json).
+        Built from one repeatable-read transaction. Secrets, host paths,
+        derived artifacts and transient import or job state are omitted. The
+        request is audited as metadata.export.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200":
+          description: Metadata export document.
+          headers:
+            Content-Disposition: { schema: { type: string } }
+            X-Volund-Export-Format: { schema: { type: string, const: volund-metadata-v1 } }
+          content:
+            application/json:
+              schema: { type: object }
+        "403":
+          description: Owner/administrator, CSRF, or same-origin verification failed.
   /api/v1/conversion-profiles:
     get:
       operationId: listConversionProfiles
@@ -1002,6 +1026,29 @@ paths:
                 type: array
                 maxItems: 32
                 items: { $ref: "#/components/schemas/SlicerTarget" }
+  /api/v1/models/{modelId}/export:
+    get:
+      operationId: exportModel
+      description: >-
+        Portable exit package (ADR 0029): a zip with every available original
+        below originals/<rootKey>/<relativePath>, SHA256SUMS and a versioned
+        manifest.json (format volund-model-export-v1). Originals are verified
+        against the catalog SHA-256 while they are packed. Derived artifacts are
+        omitted. The request is audited as model.export.
+      parameters:
+        - $ref: "#/components/parameters/ModelId"
+      responses:
+        "200":
+          description: Zip archive streamed from a staging file that is already unlinked.
+          headers:
+            Content-Disposition: { schema: { type: string } }
+            X-Volund-Export-Format: { schema: { type: string, const: volund-model-export-v1 } }
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Another export is running, or an original no longer matches its catalog SHA-256.
   /api/v1/models/{modelId}/thumbnail-candidates:
     get:
       operationId: listModelThumbnailCandidates

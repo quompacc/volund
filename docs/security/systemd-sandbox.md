@@ -35,7 +35,9 @@ P2.5 does not grant `volundd` journal or systemd control access. Recent support
 events are read from a narrow sanitized PostgreSQL table through the existing
 peer-authenticated runtime identity. `/srv/volund/support` is mode 0750, owned
 by `volund`, contains only fixed-name temporary archives, and is empty after
-successful or failed generation.
+successful or failed generation. Model export packages (ADR 0029) are staged
+there as `.model-export-*.partial` and unlinked before the download is
+streamed, so the directory must hold the largest single model being exported.
 
 System-call filters and `MemoryDenyWriteExecute` remain deferred until native
 OpenCascade and Assimp behavior is traced under representative conversions.

@@ -262,7 +262,7 @@ async fn policy_status(pool: &PgPool) -> Result<Value, String> {
     }))
 }
 
-fn validate_root(root: &Path) -> Result<(), String> {
+pub(crate) fn validate_root(root: &Path) -> Result<(), String> {
     if !root.is_absolute() {
         return Err("support_bundle_root_not_absolute".to_owned());
     }

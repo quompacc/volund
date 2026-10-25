@@ -66,16 +66,20 @@ export async function mutationJson<T>(path: string, method: "POST" | "PUT" | "PA
   return response.status === 204 ? undefined as T : (await response.json()) as T;
 }
 
-export async function postDownload(path: string): Promise<{ blob: Blob; filename: string; sha256: string | null }> {
+export async function postDownload(
+  path: string,
+  fallbackName = "volund-support.tar",
+  accept = "application/x-tar",
+): Promise<{ blob: Blob; filename: string; sha256: string | null }> {
   const csrf = csrfToken();
   const response = await fetch(path, {
     method: "POST",
-    headers: { Accept: "application/x-tar", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+    headers: { Accept: accept, ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
   });
   checkSessionResponse(response.status);
   if (!response.ok) throw new ApiError(response.status, `HTTP ${response.status}`);
   const disposition = response.headers.get("content-disposition") ?? "";
-  const filename = /filename="([A-Za-z0-9._-]+)"/.exec(disposition)?.[1] ?? "volund-support.tar";
+  const filename = /filename="([A-Za-z0-9._-]+)"/.exec(disposition)?.[1] ?? fallbackName;
   return { blob: await response.blob(), filename, sha256: response.headers.get("x-content-sha256") };
 }
 
@@ -160,6 +164,8 @@ export const catalogApi = {
     requestJson(`/api/v1/models/${encodeURIComponent(modelId)}/problems`),
   updateModelProblems: (model: ModelSummary, keys: string[], status: ModelProblem["status"]): Promise<ModelProblem[]> =>
     mutationJson(`/api/v1/models/${encodeURIComponent(model.id)}/problems`, "PUT", { expectedRevision: model.revision, keys, status }),
+  /** Download URL of the model exit package (ADR 0029); a plain GET with the session cookie. */
+  modelExportUrl: (modelId: string): string => `/api/v1/models/${encodeURIComponent(modelId)}/export`,
   thumbnailCandidates: (modelId: string): Promise<ThumbnailCandidate[]> =>
     requestJson(`/api/v1/models/${encodeURIComponent(modelId)}/thumbnail-candidates`),
   updateThumbnail: (model: ModelSummary, kind: ModelSummary["thumbnail"]["kind"], candidateId: string | null): Promise<ModelSummary> =>
@@ -299,6 +305,8 @@ export const libraryApi = {
 export const operationsApi = {
   health: (): Promise<OperationsHealth> => requestJson("/api/v1/operations/health"),
   supportBundle: (): Promise<{ blob: Blob; filename: string; sha256: string | null }> => postDownload("/api/v1/operations/support-bundle"),
+  metadataExport: (): Promise<{ blob: Blob; filename: string; sha256: string | null }> =>
+    postDownload("/api/v1/exports/metadata", "volund-metadata.json", "application/json"),
 };
 
 export const policyApi = {

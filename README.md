@@ -11,7 +11,9 @@ See the
 
 VÖLUND is a native, self-hosted CAD archive focused on durable ownership of
 engineering files and reliable CAD assembly inspection. A complete exit path is
-a product requirement; the full metadata/model export is not implemented yet.
+a product requirement: single models export as verifiable zip packages with
+their originals, and the whole catalog exports as versioned JSON
+(see [`docs/EXPORT.md`](docs/EXPORT.md)).
 
 The source filesystem remains authoritative. VÖLUND indexes originals in place,
 stores user metadata separately, and treats previews as disposable derivatives.

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volund.invalid/contracts/metadata-export-v1.schema.json",
+  "title": "VÖLUND instance metadata export v1",
+  "description": "Consistent snapshot of all user-authored catalog metadata, keyed by public UUIDs. See ADR 0029 and docs/EXPORT.md.",
+  "type": "object",
+  "required": ["format", "formatVersion", "volundVersion", "schemaMigrations", "createdAtUnixMs", "counts",
+    "libraryRoots", "sourceFiles", "fileDependencies", "fileMoves", "authors", "tags", "collections",
+    "models", "users", "catalogHistory", "omitted"],
+  "properties": {
+    "format": { "const": "volund-metadata-v1" },
+    "formatVersion": { "const": 1 },
+    "volundVersion": { "type": "string" },
+    "schemaMigrations": { "type": "integer", "minimum": 1 },
+    "createdAtUnixMs": { "type": "integer", "minimum": 0 },
+    "counts": { "type": "object" },
+    "libraryRoots": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "key", "displayName", "enabled"],
+      "properties": {
+        "id": { "type": "string" }, "key": { "type": "string" },
+        "displayName": { "type": "string" }, "enabled": { "type": "boolean" } } } },
+    "sourceFiles": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "rootKey", "relativePath", "sha256", "byteSize", "detectedFormat", "mediaType",
+        "lifecycleState", "missing", "firstSeenAtUnixMs"],
+      "properties": {
+        "id": { "type": "string" }, "rootKey": { "type": "string" }, "relativePath": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "byteSize": { "type": "integer", "minimum": 0 },
+        "detectedFormat": { "type": ["string", "null"] }, "mediaType": { "type": ["string", "null"] },
+        "lifecycleState": { "enum": ["available", "quarantined", "purged"] }, "missing": { "type": "boolean" },
+        "firstSeenAtUnixMs": { "type": "integer" } } } },
+    "fileDependencies": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceFileId", "kind", "reference", "resolvedSourceFileId"],
+      "properties": {
+        "sourceFileId": { "type": "string" }, "kind": { "type": "string" }, "reference": { "type": "string" },
+        "resolvedSourceFileId": { "type": ["string", "null"] } } } },
+    "fileMoves": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "sourceFileId", "previousRelativePath", "newRelativePath", "movedAtUnixMs"],
+      "properties": {
+        "id": { "type": "string" }, "sourceFileId": { "type": "string" },
+        "previousRelativePath": { "type": "string" }, "newRelativePath": { "type": "string" },
+        "movedAtUnixMs": { "type": "integer" } } } },
+    "authors": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "website", "provenanceSource", "provenanceNote", "active", "mergedIntoId", "revision"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" }, "website": { "type": ["string", "null"] },
+        "provenanceSource": { "type": ["string", "null"] }, "provenanceNote": { "type": ["string", "null"] },
+        "active": { "type": "boolean" }, "mergedIntoId": { "type": ["string", "null"] },
+        "revision": { "type": "integer" } } } },
+    "tags": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "slug", "name", "active", "mergedIntoId", "revision"],
+      "properties": {
+        "id": { "type": "string" }, "slug": { "type": "string" }, "name": { "type": "string" },
+        "active": { "type": "boolean" }, "mergedIntoId": { "type": ["string", "null"] },
+        "revision": { "type": "integer" } } } },
+    "collections": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "slug", "name", "description", "active", "revision", "modelIds"],
+      "properties": {
+        "id": { "type": "string" }, "slug": { "type": "string" }, "name": { "type": "string" },
+        "description": { "type": "string" }, "active": { "type": "boolean" }, "revision": { "type": "integer" },
+        "modelIds": { "type": "array", "items": { "type": "string" } } } } },
+    "models": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "slug", "name", "description", "kind", "authorId", "licenseKind", "licenseValue",
+        "viewerRotation", "active", "revision", "createdAtUnixMs", "updatedAtUnixMs", "thumbnail",
+        "tagIds", "componentIds", "files"],
+      "properties": {
+        "id": { "type": "string" }, "slug": { "type": "string" }, "name": { "type": "string" },
+        "description": { "type": "string" }, "kind": { "enum": ["part", "assembly", "project"] },
+        "authorId": { "type": ["string", "null"] },
+        "licenseKind": { "enum": ["not-specified", "spdx", "custom"] }, "licenseValue": { "type": ["string", "null"] },
+        "viewerRotation": { "type": "array", "items": { "type": "number" } },
+        "active": { "type": "boolean" }, "revision": { "type": "integer" },
+        "createdAtUnixMs": { "type": "integer" }, "updatedAtUnixMs": { "type": "integer" },
+        "thumbnail": { "type": "object", "additionalProperties": false, "required": ["kind", "sourceFileId"],
+          "properties": { "kind": { "enum": ["default", "source-file", "derived-artifact"] },
+            "sourceFileId": { "type": ["string", "null"] } } },
+        "tagIds": { "type": "array", "items": { "type": "string" } },
+        "componentIds": { "type": "array", "items": { "type": "string" } },
+        "files": { "type": "array", "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sourceFileId", "role", "primary", "ordinal", "revision", "caption", "description", "notes",
+            "printable", "printed", "preSupported", "upAxis", "supportHint", "orientation"],
+          "properties": {
+            "sourceFileId": { "type": "string" },
+            "role": { "enum": ["master-cad", "cad", "printable-mesh", "document", "image", "archive", "other"] },
+            "primary": { "type": "boolean" }, "ordinal": { "type": "integer" }, "revision": { "type": "integer" },
+            "caption": { "type": "string" }, "description": { "type": "string" }, "notes": { "type": "string" },
+            "printable": { "type": "boolean" }, "printed": { "type": "boolean" }, "preSupported": { "type": "boolean" },
+            "upAxis": { "type": ["string", "null"] }, "supportHint": { "type": "string" },
+            "orientation": { "type": "array", "items": { "type": "number" } } } } } } } },
+    "users": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "email", "displayName", "role", "status", "createdAtUnixMs"],
+      "properties": {
+        "id": { "type": "string" }, "email": { "type": "string" }, "displayName": { "type": "string" },
+        "role": { "enum": ["owner", "administrator", "editor", "viewer"] }, "status": { "type": "string" },
+        "createdAtUnixMs": { "type": "integer" } } } },
+    "catalogHistory": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "actorId", "actorName", "occurredAtUnixMs", "action", "outcome", "targetType", "targetId", "change"],
+      "properties": {
+        "id": { "type": "string" }, "actorId": { "type": ["string", "null"] }, "actorName": { "type": ["string", "null"] },
+        "occurredAtUnixMs": { "type": "integer" }, "action": { "type": "string" }, "outcome": { "type": "string" },
+        "targetType": { "enum": ["model", "model-file", "source-file", "author", "tag", "collection"] },
+        "targetId": { "type": ["string", "null"] }, "change": { "type": "object" } } } },
+    "omitted": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

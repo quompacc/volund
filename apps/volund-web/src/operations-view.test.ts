@@ -53,4 +53,22 @@ describe("operations panel", () => {
     expect(URL.createObjectURL).toHaveBeenCalled();
     vi.restoreAllMocks();
   });
+
+  it("downloads the metadata export and restores the button after failures", async () => {
+    const host = document.createElement("div");
+    host.innerHTML = operationsPanel(health(), "de-DE", "Europe/Berlin");
+    const exported = vi.spyOn(operationsApi, "metadataExport").mockRejectedValue(new Error("HTTP 403"));
+    const alert = vi.fn();
+    Object.defineProperty(window, "alert", { value: alert, configurable: true, writable: true });
+    bindOperationsActions(host);
+    const button = host.querySelector<HTMLButtonElement>("#download-metadata-export")!;
+    expect(host.textContent).toContain("ohne Zugangsdaten und Serverpfade");
+    button.click();
+    expect(button.textContent).toBe("Metadaten werden exportiert …");
+    await vi.waitFor(() => expect(button.disabled).toBe(false));
+    expect(exported).toHaveBeenCalledOnce();
+    expect(alert).toHaveBeenCalledWith("HTTP 403");
+    expect(button.textContent).toBe("Katalog-Metadaten exportieren");
+    vi.restoreAllMocks();
+  });
 });

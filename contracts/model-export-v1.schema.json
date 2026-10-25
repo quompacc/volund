@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volund.invalid/contracts/model-export-v1.schema.json",
+  "title": "VÖLUND model export manifest v1",
+  "description": "manifest.json inside a model exit package. Originals live below originals/<rootKey>/<relativePath>; SHA256SUMS lists every included original. See ADR 0029 and docs/EXPORT.md.",
+  "type": "object",
+  "required": ["format", "formatVersion", "volundVersion", "createdAtUnixMs", "model", "components", "files", "omitted"],
+  "properties": {
+    "format": { "const": "volund-model-export-v1" },
+    "formatVersion": { "const": 1 },
+    "volundVersion": { "type": "string" },
+    "createdAtUnixMs": { "type": "integer", "minimum": 0 },
+    "model": {
+      "type": "object",
+      "description": "The model as returned by GET /api/v1/models/{modelId}.",
+      "required": ["id", "slug", "name", "description", "kind", "licenseKind", "tags", "collections", "revision"],
+      "properties": {
+        "id": { "type": "string" }, "slug": { "type": "string" }, "name": { "type": "string" },
+        "description": { "type": "string" }, "kind": { "enum": ["part", "assembly", "project"] },
+        "licenseKind": { "enum": ["not-specified", "spdx", "custom"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "collections": { "type": "array", "items": { "type": "string" } },
+        "revision": { "type": "integer" }
+      }
+    },
+    "components": { "type": "array", "items": { "type": "object" } },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A linked file as returned by GET /api/v1/models/{modelId}/files plus packaging fields.",
+        "required": ["id", "path", "rootKey", "role", "primary", "byteSize", "sha256", "included", "archivePath", "exclusionReason"],
+        "properties": {
+          "id": { "type": "string" }, "path": { "type": "string" }, "rootKey": { "type": "string" },
+          "role": { "enum": ["master-cad", "cad", "printable-mesh", "document", "image", "archive", "other"] },
+          "primary": { "type": "boolean" }, "byteSize": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "included": { "type": "boolean" },
+          "archivePath": { "type": ["string", "null"] },
+          "exclusionReason": { "enum": [null, "missing", "not-available"] }
+        }
+      }
+    },
+    "omitted": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

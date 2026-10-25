@@ -271,6 +271,23 @@ describe("catalog API client", () => {
     });
   });
 
+  it("downloads the versioned metadata export and builds model export links", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(new Blob(["{}"]), {
+      headers: { "content-disposition": 'attachment; filename="volund-metadata-20261025-120000.json"' },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("document", { cookie: "volund_csrf=verified-token" });
+    const result = await operationsApi.metadataExport();
+    expect(result.filename).toBe("volund-metadata-20261025-120000.json");
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/exports/metadata", {
+      method: "POST",
+      headers: { Accept: "application/json", "X-CSRF-Token": "verified-token" },
+    });
+    fetchMock.mockResolvedValue(new Response(new Blob(["{}"])));
+    expect((await operationsApi.metadataExport()).filename).toBe("volund-metadata.json");
+    expect(catalogApi.modelExportUrl("model/1")).toBe("/api/v1/models/model%2F1/export");
+  });
+
   it("encodes central job filters and actions", async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response('{"items":[]}')));
     vi.stubGlobal("fetch", fetchMock);

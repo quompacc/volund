@@ -34,8 +34,9 @@ catalog does not guarantee a generated 3D preview.
 
 ## Known limitations
 
-- The full portable metadata/model export and complete independent exit package
-  are not implemented.
+- Model packages and the versioned catalog metadata export are available
+  (docs/EXPORT.md). A single whole-instance package including originals and the
+  re-import of a metadata export into a new instance are not implemented.
 - The keyboard, offline, timeout, and stale-response browser acceptance is
   incomplete; the automated Firefox and Chromium responsive matrices pass.
 - Large-assembly performance around the 1,500-mesh target and repeated viewer

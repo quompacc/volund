@@ -8,6 +8,8 @@ usability aid.
 | Catalog action | Viewer | Editor | Administrator | Owner |
 | --- | --- | --- | --- | --- |
 | Read models, files, thumbnails, authors, tags, collections, history | yes | yes | yes | yes |
+| Export a model package with its originals (`GET /models/{id}/export`) | yes | yes | yes | yes |
+| Export the catalog metadata (`POST /exports/metadata`) | no | no | yes | yes |
 | Edit model metadata, primary file, thumbnail, components | no | yes | yes | yes |
 | Import and change collection membership | no | yes | yes | yes |
 | Create a collection in model/import context | no | yes | yes | yes |

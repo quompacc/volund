@@ -64,6 +64,11 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
     ),
     rule("GET", "/api/v1/jobs", RoutePolicy::LibraryAdmin),
     rule(
+        "POST",
+        "/api/v1/exports/metadata",
+        RoutePolicy::LibraryAdmin,
+    ),
+    rule(
         "GET",
         "/api/v1/conversion-profiles",
         RoutePolicy::LibraryAdmin,
@@ -116,6 +121,11 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
     rule("GET", "/api/v1/models", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/models/{}", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/models/{}/files", RoutePolicy::Authenticated),
+    rule(
+        "GET",
+        "/api/v1/models/{}/export",
+        RoutePolicy::Authenticated,
+    ),
     rule("GET", "/api/v1/slicer-targets", RoutePolicy::Authenticated),
     rule(
         "PATCH",
@@ -503,6 +513,14 @@ mod tests {
         assert_eq!(
             policy("GET", "/api/v1/models/{}/history"),
             Some(RoutePolicy::Authenticated)
+        );
+        assert_eq!(
+            policy("GET", "/api/v1/models/{}/export"),
+            Some(RoutePolicy::Authenticated)
+        );
+        assert_eq!(
+            policy("POST", "/api/v1/exports/metadata"),
+            Some(RoutePolicy::LibraryAdmin)
         );
         assert_eq!(
             policy("PUT", "/api/v1/models/{}/thumbnail"),

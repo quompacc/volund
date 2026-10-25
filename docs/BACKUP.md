@@ -43,7 +43,9 @@ lost while the LXC root disk survives. It is deliberately more useful than the
 old dump stored on `/srv/volund` itself.
 
 This application-level dump does **not** protect against loss of the complete
-host or site, and it does not duplicate CAD originals. Operators must verify
+host or site, and it does not duplicate CAD originals. For an exit path that is
+readable without VÖLUND or PostgreSQL, use the model packages and the catalog
+metadata export described in [EXPORT.md](EXPORT.md). Operators must verify
 off-host protection of the database dumps and authoritative CAD volume.
 
 ## Verification and restore rehearsal

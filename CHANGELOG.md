@@ -10,6 +10,16 @@ until a signed release tag is created.
 
 ### Added
 
+- Portabler Export nach ADR 0029: „Exportieren“ auf jeder Modellseite liefert
+  ein ZIP mit allen verfügbaren Originalen unter `originals/<root>/<pfad>`,
+  `SHA256SUMS` und einem versionierten `manifest.json`
+  (`volund-model-export-v1`). Originale werden beim Packen gegen ihre
+  Katalog-Prüfsumme verifiziert; fehlende Dateien werden im Manifest als
+  ausgeschlossen markiert. Owner und Administratoren exportieren unter
+  Administration → Betrieb die gesamten Katalog-Metadaten als konsistentes,
+  versioniertes JSON (`volund-metadata-v1`) ohne Geheimnisse und Serverpfade.
+  Beide Formate haben JSON-Schemas in `contracts/`; Beschreibung in
+  `docs/EXPORT.md`.
 - Umschaltbare Darstellung (System, Hell, Dunkel) in der Kopfleiste. Die
   Auswahl wird pro Browser gespeichert; „System“ folgt der Betriebssystem-
   Einstellung, und der 3D-Viewer mit Hintergrund „System“ folgt dem gewählten

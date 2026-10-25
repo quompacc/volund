@@ -7,7 +7,8 @@ export function operationsPanel(health: OperationsHealth, locale: string, timeZo
   return `<section class="admin-section operations-panel" aria-labelledby="operations-heading">
     <div class="section-heading"><div><p class="eyebrow">BETRIEB</p><h2 id="operations-heading">Systemzustand</h2></div>${stateBadge(health.state)}</div>
     <p class="admin-copy">VÖLUND ${escapeMarkup(health.version)} · geprüft ${formatTime(health.checkedAtUnixMs, locale, timeZone)}</p>
-    <button id="download-support-bundle" class="secondary-action">Geschwärztes Supportpaket herunterladen</button>
+    <div class="hero-actions"><button id="download-support-bundle" class="secondary-action">Geschwärztes Supportpaket herunterladen</button><button id="download-metadata-export" class="secondary-action">Katalog-Metadaten exportieren</button></div>
+    <p class="admin-copy">Der Metadaten-Export ist ein versioniertes JSON aller Modelle, Dateien, Tags, Kollektionen, Autoren und der Katalog-Historie – ohne Zugangsdaten und Serverpfade. Originale exportierst du pro Modell über „Exportieren“ auf der Modellseite.</p>
     <div class="admin-list">
       <article><div><strong>Datenbank</strong><small>PostgreSQL ${database.serverVersion} · Migrationen ${database.appliedMigrations}/${database.expectedMigrations} · Tabellen ${database.schemaTables}/${database.expectedSchemaTables}</small></div>${stateBadge(database.state)}</article>
       ${health.workers.map((worker) => componentRow(worker, locale, timeZone)).join("")}
@@ -20,11 +21,23 @@ export function operationsPanel(health: OperationsHealth, locale: string, timeZo
 }
 
 export function bindOperationsActions(host: HTMLElement): void {
-  host.querySelector<HTMLButtonElement>("#download-support-bundle")?.addEventListener("click", (event) => {
+  bindDownload(host, "#download-support-bundle", operationsApi.supportBundle, "Supportpaket wird sicher erstellt …", "Supportpaket fehlgeschlagen");
+  bindDownload(host, "#download-metadata-export", operationsApi.metadataExport, "Metadaten werden exportiert …", "Metadaten-Export fehlgeschlagen");
+}
+
+function bindDownload(
+  host: HTMLElement,
+  selector: string,
+  request: () => Promise<{ blob: Blob; filename: string }>,
+  busyLabel: string,
+  failureLabel: string,
+): void {
+  host.querySelector<HTMLButtonElement>(selector)?.addEventListener("click", (event) => {
     const button = event.currentTarget as HTMLButtonElement;
+    const idleLabel = button.textContent ?? "";
     button.disabled = true;
-    button.textContent = "Supportpaket wird sicher erstellt …";
-    void operationsApi.supportBundle().then(({ blob, filename }) => {
+    button.textContent = busyLabel;
+    void request().then(({ blob, filename }) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -32,10 +45,10 @@ export function bindOperationsActions(host: HTMLElement): void {
       link.click();
       URL.revokeObjectURL(url);
     }).catch((error: unknown) => {
-      window.alert(error instanceof Error ? error.message : "Supportpaket fehlgeschlagen");
+      window.alert(error instanceof Error ? error.message : failureLabel);
     }).finally(() => {
       button.disabled = false;
-      button.textContent = "Geschwärztes Supportpaket herunterladen";
+      button.textContent = idleLabel;
     });
   });
 }

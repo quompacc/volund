@@ -164,6 +164,7 @@ fn protected_routes(state: ApiState) -> Router<ApiState> {
         .merge(crate::api_metadata::routes())
         .merge(crate::api_history::routes())
         .merge(crate::api_thumbnail::routes())
+        .merge(crate::api_export::routes())
         .route(
             "/settings/{setting_key}",
             axum::routing::put(crate::api_settings::update),

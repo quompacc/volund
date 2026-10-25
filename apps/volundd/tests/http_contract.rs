@@ -9,6 +9,7 @@ const POLICY_ROUTER_SOURCE: &str = include_str!("../src/api_policy.rs");
 const METADATA_ROUTER_SOURCE: &str = include_str!("../src/api_metadata.rs");
 const HISTORY_ROUTER_SOURCE: &str = include_str!("../src/api_history.rs");
 const THUMBNAIL_ROUTER_SOURCE: &str = include_str!("../src/api_thumbnail.rs");
+const EXPORT_ROUTER_SOURCE: &str = include_str!("../src/api_export.rs");
 const PREFERENCES_ROUTER_SOURCE: &str = include_str!("../src/api_preferences.rs");
 const PROBLEMS_ROUTER_SOURCE: &str = include_str!("../src/api_problems.rs");
 const PRIMARY_ROUTER_SOURCE: &str = include_str!("../src/api_primary.rs");
@@ -44,6 +45,7 @@ fn router_paths() -> BTreeSet<String> {
         .chain(METADATA_ROUTER_SOURCE.lines())
         .chain(HISTORY_ROUTER_SOURCE.lines())
         .chain(THUMBNAIL_ROUTER_SOURCE.lines())
+        .chain(EXPORT_ROUTER_SOURCE.lines())
         .chain(PREFERENCES_ROUTER_SOURCE.lines())
         .chain(PROBLEMS_ROUTER_SOURCE.lines())
         .chain(PRIMARY_ROUTER_SOURCE.lines())

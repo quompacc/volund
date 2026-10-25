@@ -69,6 +69,8 @@ describe("model preview lifecycle", () => {
 
     expect(previews).toHaveBeenCalledTimes(91);
     expect(host.textContent).toContain("3D-Vorschau wird im Hintergrund erzeugt");
+    // Read-only viewers may export what they can see (ADR 0029).
+    expect(host.querySelector("a[download]")?.getAttribute("href")).toBe(catalogApi.modelExportUrl(model.id));
     dispose();
   });
 });

@@ -160,3 +160,70 @@ pub async fn authenticated_router(pool: &PgPool, router: axum::Router) -> axum::
         },
     ))
 }
+
+/// Check `value` against the subset of JSON Schema used by VÖLUND contracts:
+/// `type`, `const`, `enum`, `pattern` (anchored hex only), `required`,
+/// `properties`, `additionalProperties: false` and `items`.
+#[allow(dead_code)] // Each integration-test crate compiles this shared module independently.
+pub fn assert_matches_schema(schema: &Value, value: &Value, path: &str) {
+    if let Some(expected) = schema.get("const") {
+        assert_eq!(value, expected, "{path}: const");
+    }
+    if let Some(options) = schema.get("enum").and_then(Value::as_array) {
+        assert!(options.contains(value), "{path}: {value} not in enum");
+    }
+    if let Some(kind) = schema.get("type") {
+        let kinds: Vec<&str> = match kind {
+            Value::String(single) => vec![single.as_str()],
+            Value::Array(many) => many.iter().filter_map(Value::as_str).collect(),
+            _ => Vec::new(),
+        };
+        let matches = kinds.iter().any(|kind| match *kind {
+            "object" => value.is_object(),
+            "array" => value.is_array(),
+            "string" => value.is_string(),
+            "integer" => value.is_i64() || value.is_u64(),
+            "number" => value.is_number(),
+            "boolean" => value.is_boolean(),
+            "null" => value.is_null(),
+            _ => false,
+        });
+        assert!(matches, "{path}: {value} is not {kinds:?}");
+    }
+    if schema.get("pattern").and_then(Value::as_str) == Some("^[a-f0-9]{64}$") {
+        if let Some(text) = value.as_str() {
+            assert!(
+                text.len() == 64 && text.chars().all(|c| matches!(c, 'a'..='f' | '0'..='9')),
+                "{path}: not a SHA-256"
+            );
+        }
+    }
+    if let Some(object) = value.as_object() {
+        for key in schema
+            .get("required")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            let key = key.as_str().expect("required key");
+            assert!(object.contains_key(key), "{path}: missing {key}");
+        }
+        let properties = schema.get("properties").and_then(Value::as_object);
+        for (key, child) in object {
+            match properties.and_then(|properties| properties.get(key)) {
+                Some(child_schema) => {
+                    assert_matches_schema(child_schema, child, &format!("{path}.{key}"));
+                }
+                None => assert!(
+                    schema.get("additionalProperties") != Some(&Value::Bool(false)),
+                    "{path}: unexpected property {key}"
+                ),
+            }
+        }
+    }
+    if let (Some(items), Some(array)) = (schema.get("items"), value.as_array()) {
+        for (index, item) in array.iter().enumerate() {
+            assert_matches_schema(items, item, &format!("{path}[{index}]"));
+        }
+    }
+}

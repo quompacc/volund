@@ -4,7 +4,7 @@ use sqlx::{PgPool, Row};
 
 use crate::api_models::Page;
 
-const TARGET_TYPES: &[&str] = &[
+pub(crate) const TARGET_TYPES: &[&str] = &[
     "model",
     "model-file",
     "source-file",
@@ -95,7 +95,7 @@ fn event(row: &sqlx::postgres::PgRow) -> HistoryEvent {
     }
 }
 
-fn sanitized(metadata: &Value) -> Value {
+pub(crate) fn sanitized(metadata: &Value) -> Value {
     const KEYS: &[&str] = &[
         "fields",
         "revision",
