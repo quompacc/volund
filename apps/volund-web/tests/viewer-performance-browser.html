@@ -22,6 +22,7 @@ import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { CadViewer } from "../src/viewer.ts";
 import { assemblyTreeMarkup, mountAssemblyTree, parseAssemblyManifest } from "../src/assembly-tree.ts";
+import { renderingCapability } from "../src/rendering-capability.ts";
 
 // Budgets of the large-assembly acceptance (docs/benchmarks/large-assembly-viewer.md).
 const budgets = {
@@ -139,7 +140,8 @@ try {
   viewer.clear();
   URL.revokeObjectURL(url);
   const result = {
-    variant: high ? "unique-geometry-1.5m-triangles" : unique ? "unique-geometry" : "repeated-instances", renderer, userAgent: navigator.userAgent,
+    variant: high ? "unique-geometry-1.5m-triangles" : unique ? "unique-geometry" : "repeated-instances", renderer,
+    capability: renderingCapability(), userAgent: navigator.userAgent,
     glbBytes: glb.byteLength, firstLoadMs, worstLoadMs: Math.max(...loads), medianLoadMs: percentile(loads, 0.5),
     frameP50Ms: percentile(frames, 0.5), frameP95Ms: percentile(frames, 0.95), frameMaxMs: Math.max(...frames),
     renderCalls: afterOrbit.renderCalls, triangles: afterOrbit.triangles,

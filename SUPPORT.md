@@ -45,9 +45,10 @@ catalog does not guarantee a generated 3D preview.
 - Large-assembly viewer acceptance passed on 2026-10-26 in Edge and Firefox on a
   desktop GPU: 1,500 meshes up to 1.5 million triangles load in well under a
   second, orbit at display rate, and release every renderer resource across ten
-  cycles (docs/benchmarks/large-assembly-viewer.md). Without a GPU (software
-  rendering), previews of that size are not interactive; a WebGL fallback is
-  still open.
+  cycles (docs/benchmarks/large-assembly-viewer.md). Without a GPU, previews
+  of that size are not interactive. Since ADR 0036 the browser detects this and
+  loads previews over 8 MiB only on request. Without WebGL it explains that
+  3D is unavailable; the rest of the page stays usable.
 - Worker leases, immediate recovery of lost jobs, orderly SIGTERM stop,
   lock-aware conversion timeouts, and orphaned-directory cleanup are
   implemented and covered by Linux integration tests with real worker

@@ -157,7 +157,7 @@ try {
     failed ||= !run.informative && Boolean(run.failures?.length);
     console.log(`${run.browser} ${run.variant}: ${verdict} · Laden ${Math.round(run.firstLoadMs)}/${Math.round(run.worstLoadMs)} ms · `
       + `Frame p95 ${run.frameP95Ms?.toFixed(1)} ms · ${run.triangles} Dreiecke · GLB ${(run.glbBytes / 1e6).toFixed(1)} MB · `
-      + `Auswahl ${run.selectMs?.toFixed(1)} ms · Baum ${Math.round(run.treeMountMs)} ms · Heap +${run.heapGrowthBytes ?? "n/a"} B · ${run.renderer}`);
+      + `Auswahl ${run.selectMs?.toFixed(1)} ms · Baum ${Math.round(run.treeMountMs)} ms · Heap +${run.heapGrowthBytes ?? "n/a"} B · ${run.capability} · ${run.renderer}`);
   }
   const report = process.argv.indexOf("--report");
   if (report > 0) writeFileSync(process.argv[report + 1], `${JSON.stringify([...runs, ...software], null, 2)}\n`);

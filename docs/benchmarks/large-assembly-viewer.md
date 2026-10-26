@@ -75,9 +75,9 @@ pages, so that check is skipped there.
   display, and load, clear, and selection are far inside their budgets.
 - Repeated load and clear does not leak renderer resources or JS memory.
 - Without a usable GPU, light previews stay usable, but a 1.5-million-triangle
-  preview renders below two frames per second. That case belongs to the WebGL
-  fallback work: a coarser automatic profile, or a structure-only view, when
-  rendering is software-only.
+  preview renders below two frames per second. The WebGL fallback
+  ([ADR 0036](../adr/0036-webgl-fallback.md)) therefore loads previews over
+  8 MiB on software rendering only on request.
 - Real STEP assemblies differ from these fixtures in their materials, colors,
   and hierarchy depth. Their conversion side is measured separately in
   `voron-2.4-assembly.md`.

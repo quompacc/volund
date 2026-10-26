@@ -10,6 +10,12 @@ until a signed release tag is created.
 
 ### Added
 
+- WebGL-Fallback nach ADR 0036: Die Oberfläche erkennt, ob 3D auf der GPU,
+  nur in Software oder gar nicht gerendert werden kann. Ohne WebGL erscheint
+  statt eines Viewer-Fehlers ein Hinweis, Struktur, Dateiangaben und Download
+  bleiben nutzbar. Bei Software-Rendering werden Vorschauen über 8 MiB erst
+  nach „Vorschau trotzdem laden“ geöffnet und Datei-Kacheln über 2 MiB ohne
+  Live-Vorschau gezeigt.
 - Bibliotheks-Onboarding nach ADR 0035: Ein „Probelauf“ beim Anlegen liest
   den Ordner nur lesend und meldet Dateien, Größe, erkannte CAD-Formate,
   übersprungene Symlinks, die größten Dateien, Blocker, an denen ein Scan

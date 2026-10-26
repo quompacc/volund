@@ -13,6 +13,7 @@ import { mountCollections, mountTags } from "./metadata-catalog";
 import { loadSlicerTargets, mountSlicerButtons } from "./slicer-launch";
 import { loadDashboardModels, mountModelList } from "./model-list-view";
 import { mountProblemOverview } from "./problem-overview";
+import { admitPreview, renderingCapability, tileAllowed } from "./rendering-capability";
 import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilterOptions, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
 import { PdfViewer, pdfViewerMarkup } from "./pdf-viewer";
 import { preferredModelFile, settingString } from "./preferences";
@@ -221,6 +222,11 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
         if (stlTileViewers.has(canvas)) return;
         const file = byId.get(canvas.dataset.stlPreview!);
         if (!file) return;
+        if (!tileAllowed(renderingCapability(), file.byteSize)) {
+          const state = canvas.parentElement?.querySelector<HTMLElement>("[data-stl-state]");
+          if (state) state.textContent = renderingCapability() === "none" ? "KEIN WEBGL" : "ÖFFNEN FÜR VORSCHAU";
+          return;
+        }
         const tileViewer = new CadViewer(canvas, preferences);
         const active = { viewer: tileViewer, loaded: false };
         stlTileViewers.set(canvas, active);
@@ -280,6 +286,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
           return;
         }
         if (extension === "stl") {
+          if (!admitPreview(stage, file.id, name, file.byteSize, formatBytes(file.byteSize), () => openModelFile(file))) return;
           stage.innerHTML = `<canvas id="model-hero-canvas"></canvas><div id="model-hero-state" class="viewer-state visible">STL wird direkt geladen …</div><div class="viewer-hint">Ziehen · Drehen &nbsp; Scrollen · Zoomen</div><div class="model-media-caption"><strong>${escapeMarkup(name)}</strong><span>STL · ${formatBytes(file.byteSize)}</span></div>`;
           const canvas = stage.querySelector<HTMLCanvasElement>("#model-hero-canvas")!;
           const state = stage.querySelector<HTMLElement>("#model-hero-state")!;
@@ -292,7 +299,6 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
           stage.innerHTML = `<canvas id="model-hero-canvas"></canvas><div id="model-hero-state" class="viewer-state visible">3D-Vorschau wird gesucht …</div><div class="viewer-hint">Ziehen · Drehen &nbsp; Scrollen · Zoomen</div><div class="model-media-caption"><strong>${escapeMarkup(name)}</strong><span>${escapeMarkup(file.format.toUpperCase())} · ${formatBytes(file.byteSize)}</span></div>`;
           const canvas = stage.querySelector<HTMLCanvasElement>("#model-hero-canvas")!;
           const state = stage.querySelector<HTMLElement>("#model-hero-state")!;
-          viewer = new CadViewer(canvas, preferences);
           let artifact = await previewArtifact(file.id);
           if (!artifact) {
             state.textContent = "3D-Vorschau wurde eingereiht …";
@@ -304,7 +310,9 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
             state.textContent = "3D-Vorschau wird im Hintergrund erzeugt. Diese Ansicht aktualisiert sich weiter.";
             return;
           }
+          if (!admitPreview(stage, file.id, name, artifact.byteSize, formatBytes(artifact.byteSize), () => openModelFile(file))) return;
           state.textContent = `3D-Modell wird geladen · ${formatBytes(artifact.byteSize)}`;
+          viewer = new CadViewer(canvas, preferences);
           await viewer.load(artifact.url, "glb", model.viewerRotation);
           if (token === selection) state.classList.remove("visible");
           return;
