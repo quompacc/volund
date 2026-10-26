@@ -49,8 +49,11 @@ catalog does not guarantee a generated 3D preview.
   implemented and covered by Linux integration tests with real worker
   processes (ADR 0030), and a systemd stop mid-conversion is part of the
   boot probe below.
-- The complete slicer handoff safety and unavailable-target behavior remain
-  under G.4.
+- Slicer handoff safety (G.4, ADR 0031): bounded, re-validated download
+  tokens, a per-account limit, an explicit unavailable state, and a browser
+  hint when no local slicer reacts. Real desktop slicers (PrusaSlicer,
+  OrcaSlicer, Bambu Studio) have not been exercised against it in an automated
+  test.
 - The J.2–J.4 boot probe (`deploy/debian/tests/boot-probe.py`) passed on
   2026-10-25 for v0.39.0 → current `main` → v0.39.0 in a freshly bootstrapped,
   booted Debian 13 container: runbook installation, systemd boot and reboot,

@@ -79,7 +79,7 @@ pub mod scheduler;
 pub mod security_audit;
 pub mod session;
 pub mod settings;
-mod slicer_handoff;
+pub mod slicer_handoff;
 pub mod source_cleanup;
 mod source_link;
 pub mod source_move;

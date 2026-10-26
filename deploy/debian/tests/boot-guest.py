@@ -32,6 +32,7 @@ TIMERS = ['volund-preview-worker', 'volund-scan-worker', 'volund-import-cleanup'
           'volund-scheduler', 'volund-retention']
 SLOW_CONVERTER = Path('/usr/local/libexec/volund-j3-slow-convert')
 SLOW_DROPIN = Path('/etc/systemd/system/volund-preview-worker.service.d/j3-slow.conf')
+BACKUPS = Path('/var/backups/volund-j3')
 
 
 def source(release):
@@ -153,10 +154,44 @@ def install(release):
     print(f'PASS: Erstinstallation ({release}) aus dem Runbook, Units aktiviert', flush=True)
 
 
+def frozen_dump():
+    """Dump the frozen database like volund-backup: custom format plus manifest."""
+    BACKUPS.mkdir(mode=0o750, exist_ok=True)
+    shutil.chown(BACKUPS, 'volund', 'volund')
+    dump = BACKUPS / 'volund-20261026T000000Z.dump'
+    run('sudo', '-u', 'volund', 'pg_dump', '--format=custom', '--dbname=volund', f'--file={dump}')
+    digest = hashlib.sha256(dump.read_bytes()).hexdigest()
+    (BACKUPS / 'volund-20261026T000000Z.sha256').write_text(f'{digest}  {dump.name}\n')
+    return dump
+
+
+def full_rollback(out):
+    """The runbook's full rollback: restore the frozen dump under a new name,
+    verify it with the retained binary, then swap names (no live overwrite)."""
+    dump = BACKUPS / 'volund-20261026T000000Z.dump'
+    restore = source('new') / 'deploy/backup/volund-restore'
+    run('sudo', '-u', 'postgres', 'createdb', '--owner=volund', '--template=template0',
+        '--encoding=UTF8', 'volund_rollback')
+    run('sudo', '-u', 'volund', 'sh', restore, dump, 'volund_rollback')
+    candidate = dict(ENV, VOLUND_DATABASE_URL='postgresql:///volund_rollback?host=/var/run/postgresql')
+    subprocess.run(['sudo', '-u', 'volund', '--preserve-env=VOLUND_DATABASE_URL', str(out / 'volundd'),
+                    'database-doctor'], env=candidate, check=True)
+    for statement in ('ALTER DATABASE volund RENAME TO volund_quarantine_j3',
+                      'ALTER DATABASE volund_rollback RENAME TO volund'):
+        run('sudo', '-u', 'postgres', 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-c', statement)
+    (BACKUPS / 'full-rollback').write_text('restored frozen pre-upgrade dump\n')
+
+
 def switch(release):
     run('pg_ctlcluster', '17', 'volund', 'start')
     try:
         out = Path('/opt') / release / 'release'
+        if release == 'new':
+            frozen_dump()
+        elif subprocess.run(['sudo', '-u', 'volund', str(out / 'volundd'), 'database-doctor'],
+                            env=ENV).returncode != 0:
+            # The retained binary rejects the candidate's newer schema.
+            full_rollback(out)
         run('sudo', '-u', 'volund', out / 'volundd', 'migrate')
         run('sudo', '-u', 'volund', out / 'volundd', 'database-doctor')
         install_release(release)

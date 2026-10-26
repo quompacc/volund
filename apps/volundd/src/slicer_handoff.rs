@@ -1,5 +1,7 @@
 use axum::Json;
-use axum::http::{HeaderMap, StatusCode, Uri};
+use axum::extract::{Extension, Path as AxumPath, State};
+use axum::http::header::{CACHE_CONTROL, REFERRER_POLICY};
+use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use chrono::{Duration, Utc};
 use rand_core::{OsRng, RngCore};
@@ -18,6 +20,71 @@ use crate::session::AuthenticatedSession;
 const TARGETS_ENV: &str = "VOLUND_SLICER_TARGETS";
 const PUBLIC_BASE_ENV: &str = "VOLUND_PUBLIC_BASE_URL";
 const ALLOWED_SCHEMES: &[&str] = &["prusaslicer", "orcaslicer", "bambustudio"];
+/// Downloads per token, including range requests and client retries (ADR 0031).
+const MAX_TOKEN_USES: i32 = 8;
+/// Unexpired handoffs one account may hold at a time.
+const MAX_ACTIVE_PER_ACCOUNT: i64 = 10;
+const MISCONFIGURED: &str = "slicer_handoff_misconfigured";
+
+/// Operator slicer configuration: the raw `VOLUND_SLICER_TARGETS` and
+/// `VOLUND_PUBLIC_BASE_URL` values, validated on every use.
+#[derive(Clone, Debug, Default)]
+pub struct SlicerConfig {
+    targets: String,
+    public_base: String,
+}
+
+impl SlicerConfig {
+    /// Read the configuration from the daemon environment.
+    #[must_use]
+    pub fn from_environment() -> Self {
+        Self::new(
+            &std::env::var(TARGETS_ENV).unwrap_or_default(),
+            &std::env::var(PUBLIC_BASE_ENV).unwrap_or_default(),
+        )
+    }
+
+    /// Explicit configuration, e.g. for isolated tests.
+    #[must_use]
+    pub fn new(targets: &str, public_base: &str) -> Self {
+        Self {
+            targets: targets.to_owned(),
+            public_base: public_base.to_owned(),
+        }
+    }
+}
+
+/// Build the default API router with an explicit slicer configuration.
+pub fn router_with_config(pool: sqlx::PgPool, slicer: SlicerConfig) -> axum::Router {
+    let state = (
+        "/srv/volund/derived".into(),
+        "/srv/volund/support".into(),
+        crate::identity::IdentityConfig::default(),
+        crate::session::SessionConfig::default(),
+        slicer,
+    );
+    crate::api::router_with_state(pool, "/usr/share/volund/web".into(), state)
+}
+
+/// `GET /api/v1/slicer-targets`.
+pub(crate) async fn list_targets(
+    State(state): State<ApiState>,
+) -> Result<Json<Vec<SlicerTargetSummary>>, ApiError> {
+    targets(&state.slicer).map(Json)
+}
+
+/// `POST /api/v1/models/{model}/files/{file}/slicer-handoff`.
+pub(crate) async fn create_route(
+    State(state): State<ApiState>,
+    Extension(actor): Extension<AuthenticatedSession>,
+    AxumPath((model_id, file_id)): AxumPath<(String, String)>,
+    Json(request): Json<CreateSlicerHandoffRequest>,
+) -> Result<Json<SlicerHandoffResponse>, ApiError> {
+    crate::api_auth::require_catalog_write(&actor)?;
+    create(&state, &actor, &model_id, &file_id, request)
+        .await
+        .map(Json)
+}
 
 #[derive(Clone, Debug)]
 struct Target {
@@ -29,9 +96,11 @@ struct Target {
 /// List operator-configured slicers without exposing a command or host path.
 ///
 /// # Errors
-/// Returns a configuration error when a configured target violates the allowlist.
-pub(crate) fn targets() -> Result<Vec<SlicerTargetSummary>, ApiError> {
-    configured_targets().map(|targets| {
+/// Returns 503 `slicer_handoff_misconfigured` when targets are configured but
+/// invalid, or when no valid public HTTPS base URL exists for their downloads,
+/// so clients never offer a handoff that is bound to fail.
+pub(crate) fn targets(config: &SlicerConfig) -> Result<Vec<SlicerTargetSummary>, ApiError> {
+    usable_targets(config).map(|targets| {
         targets
             .into_iter()
             .map(|target| SlicerTargetSummary {
@@ -54,11 +123,11 @@ pub(crate) async fn create(
     file_id: &str,
     request: CreateSlicerHandoffRequest,
 ) -> Result<SlicerHandoffResponse, ApiError> {
-    let target = configured_targets()?
+    let target = usable_targets(&state.slicer)?
         .into_iter()
         .find(|target| target.id == request.target_id)
         .ok_or_else(|| ApiError::BadRequest("unknown slicer target".to_owned()))?;
-    let base = public_base()?;
+    let base = parse_public_base(&state.slicer.public_base).map_err(|_| misconfigured())?;
     let row = sqlx::query(
         "SELECT model.id,source.id,source.relative_path,link.printable,source.missing_at IS NOT NULL \
          FROM volund.models model JOIN volund.model_source_files link ON link.model_id=model.id \
@@ -87,6 +156,19 @@ pub(crate) async fn create(
         .execute(&state.pool)
         .await
         .map_err(|error| ApiError::Database(format!("cannot expire slicer handoffs: {error}")))?;
+    let active: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM volund.slicer_handoffs WHERE actor_user_id=$1 AND expires_at > now()",
+    )
+    .bind(actor.database_user_id())
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|error| ApiError::Database(format!("cannot count slicer handoffs: {error}")))?;
+    if active >= MAX_ACTIVE_PER_ACCOUNT {
+        return Err(ApiError::TooMany(
+            "slicer_handoff_limit",
+            "too many open slicer handoffs; wait a few minutes and try again".to_owned(),
+        ));
+    }
     let mut transaction = state
         .pool
         .begin()
@@ -135,19 +217,43 @@ pub(crate) async fn create(
 }
 
 /// Stream a valid bearer handoff as an attachment.
+///
+/// Every use re-checks what made the handoff legitimate when it was created:
+/// the account is still active, the model is active, the file is still linked,
+/// printable, and present, and the target is still configured. Each token
+/// serves at most `MAX_TOKEN_USES` requests.
 pub(crate) async fn download(state: ApiState, token: String, headers: HeaderMap) -> Response {
     let digest = hex::encode(Sha256::digest(token.as_bytes()));
-    let file_id = sqlx::query_scalar(
-        "SELECT source.public_id::text FROM volund.slicer_handoffs handoff \
-         JOIN volund.source_files source ON source.id=handoff.source_file_id \
-         WHERE handoff.token_digest=$1 AND handoff.expires_at > now()",
+    let claimed = sqlx::query_as::<_, (String, String)>(
+        "UPDATE volund.slicer_handoffs handoff SET use_count=handoff.use_count+1, last_used_at=now() \
+         FROM volund.source_files source, volund.models model, volund.model_source_files link, \
+          volund.users account \
+         WHERE handoff.token_digest=$1 AND handoff.expires_at > now() AND handoff.use_count < $2 \
+         AND source.id=handoff.source_file_id AND model.id=handoff.model_id \
+         AND link.model_id=model.id AND link.source_file_id=source.id \
+         AND account.id=handoff.actor_user_id \
+         AND model.active AND link.printable AND account.status='active' \
+         AND source.lifecycle_state='available' AND source.missing_at IS NULL \
+         RETURNING source.public_id::text, handoff.target_id",
     )
     .bind(digest)
+    .bind(MAX_TOKEN_USES)
     .fetch_optional(&state.pool)
     .await;
-    match file_id {
-        Ok(Some(file_id)) => crate::source_stream::serve_download(state, file_id, headers).await,
-        Ok(None) => handoff_error(StatusCode::NOT_FOUND, "slicer handoff is unavailable"),
+    let still_configured = |target: &str| {
+        usable_targets(&state.slicer)
+            .is_ok_and(|targets| targets.iter().any(|item| item.id == target))
+    };
+    match claimed {
+        Ok(Some((file_id, target))) if still_configured(&target) => {
+            let mut response = crate::source_stream::serve_download(state, file_id, headers).await;
+            // The URL itself is the credential: never cache it or leak it onward.
+            let headers = response.headers_mut();
+            headers.insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+            headers.insert(REFERRER_POLICY, HeaderValue::from_static("no-referrer"));
+            response
+        }
+        Ok(_) => handoff_error(StatusCode::NOT_FOUND, "slicer handoff is unavailable"),
         Err(error) => {
             eprintln!("slicer handoff lookup failed: {error}");
             handoff_error(
@@ -158,9 +264,34 @@ pub(crate) async fn download(state: ApiState, token: String, headers: HeaderMap)
     }
 }
 
-fn configured_targets() -> Result<Vec<Target>, ApiError> {
-    let value = std::env::var(TARGETS_ENV).unwrap_or_default();
-    parse_targets(&value)
+/// Targets that can actually complete a handoff: a valid allowlisted target
+/// list plus a valid public HTTPS base. No targets configured is not an error.
+fn usable_targets(config: &SlicerConfig) -> Result<Vec<Target>, ApiError> {
+    let targets = parse_targets(&config.targets).map_err(|error| {
+        eprintln!("slicer handoff disabled: {}", describe(&error));
+        misconfigured()
+    })?;
+    if !targets.is_empty() {
+        if let Err(error) = parse_public_base(&config.public_base) {
+            eprintln!("slicer handoff disabled: {}", describe(&error));
+            return Err(misconfigured());
+        }
+    }
+    Ok(targets)
+}
+
+fn misconfigured() -> ApiError {
+    ApiError::Unavailable(
+        MISCONFIGURED,
+        "slicer handoff is not fully configured on this server".to_owned(),
+    )
+}
+
+fn describe(error: &ApiError) -> String {
+    match error {
+        ApiError::BadRequest(message) => message.clone(),
+        _ => "invalid slicer configuration".to_owned(),
+    }
 }
 
 fn parse_targets(value: &str) -> Result<Vec<Target>, ApiError> {
@@ -208,11 +339,6 @@ fn valid_target_id(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
-}
-
-fn public_base() -> Result<String, ApiError> {
-    let value = std::env::var(PUBLIC_BASE_ENV).unwrap_or_default();
-    parse_public_base(&value)
 }
 
 fn parse_public_base(value: &str) -> Result<String, ApiError> {

@@ -63,11 +63,13 @@ function fileCard(file: ModelFile): string {
   return `<article class="model-file-card${file.missing ? " missing" : ""}" data-model-file="${escapeMarkup(file.id)}" data-open-file="${escapeMarkup(file.id)}" data-file-filter="${modelFileFilter(file)}"><span class="model-file-preview">${preview}${file.primary ? '<b>PRIMÄR</b>' : ""}</span><span class="model-file-card-copy"><span class="model-file-title"><strong>${escapeMarkup(file.caption || name)}</strong><button class="file-menu-trigger" data-file-menu="${escapeMarkup(file.id)}" type="button" aria-label="Menü für ${escapeMarkup(name)} öffnen" aria-haspopup="menu">•••</button></span><small title="${escapeMarkup(file.path)}">${escapeMarkup(file.path)}</small><em>${formatBytes(file.byteSize)}${file.printable ? " · DRUCKBAR" : ""}${file.missing ? " · NICHT VERFÜGBAR" : ""}</em></span></article>`;
 }
 
-export function fileDetailMarkup(file: ModelFile, canEdit: boolean, slicerTargets: SlicerTarget[]): string {
+export function fileDetailMarkup(file: ModelFile, canEdit: boolean, slicerTargets: SlicerTarget[] | null): string {
   const filename = file.path.split("/").at(-1) || "download";
   const download = file.missing ? "" : `<a class="primary-action" href="${catalogApi.sourceDownloadUrl(file.id)}" download="${escapeMarkup(filename)}">Original herunterladen</a>`;
   const slicers = file.printable && !file.missing
-    ? `<section class="slicer-actions"><h3>Im Slicer öffnen</h3>${slicerTargets.length > 0
+    ? `<section class="slicer-actions"><h3>Im Slicer öffnen</h3>${slicerTargets === null
+      ? '<p class="form-message">Die Slicer-Übergabe ist auf dem Server nicht vollständig eingerichtet. Verwende „Original herunterladen“.</p>'
+      : slicerTargets.length > 0
       ? `${slicerTargets.map((target) => `<button class="secondary-action" type="button" data-slicer-target="${escapeMarkup(target.id)}">${escapeMarkup(target.name)}</button>`).join("")}<p id="slicer-status" class="form-message" aria-live="polite"></p>`
       : '<p class="form-message">Kein Slicer-Ziel ist konfiguriert. Verwende stattdessen „Original herunterladen“.</p>'}</section>`
     : "";
@@ -77,6 +79,10 @@ export function fileDetailMarkup(file: ModelFile, canEdit: boolean, slicerTarget
   const makePrimary = file.format === "step" && !file.primary && !file.missing
     ? `<button class="secondary-action" data-set-primary-file="${escapeMarkup(file.id)}" type="button">Als Primärdatei verwenden</button>` : "";
   return `<form id="model-file-metadata-form" class="file-metadata-form"><div class="file-form-columns"><section class="file-form-section"><h3>Beschreibung</h3><label>Titel<input name="caption" maxlength="160" value="${escapeMarkup(file.caption)}"></label><label>Beschreibung<textarea name="description" maxlength="4000" rows="4">${escapeMarkup(file.description)}</textarea></label><label>Notizen<textarea name="notes" maxlength="4000" rows="4">${escapeMarkup(file.notes)}</textarea></label></section><section class="file-form-section"><h3>Fertigung</h3><fieldset class="manufacturing-options"><legend class="sr-only">Fertigungsstatus</legend><label><input name="printable" type="checkbox"${file.printable ? " checked" : ""}> Druckbar (STL/3MF)</label><label><input name="printed" type="checkbox"${file.printed ? " checked" : ""}> Bereits gedruckt</label><label><input name="preSupported" type="checkbox"${file.preSupported ? " checked" : ""}> Bereits unterstützt</label></fieldset><div class="file-form-pair"><label>Oben-Achse<select name="upAxis"><option value="">Nicht angegeben</option>${["x", "y", "z"].map((axis) => `<option value="${axis}"${file.upAxis === axis ? " selected" : ""}>${axis.toUpperCase()}</option>`).join("")}</select></label><label>Support-Hinweis<input name="supportHint" maxlength="1000" value="${escapeMarkup(file.supportHint)}"></label></div><fieldset class="orientation-fields"><legend>Orientierung in Grad</legend>${orientation.map((value, index) => `<label>${["X", "Y", "Z"][index]}<input name="orientation${["X", "Y", "Z"][index]}" type="number" min="-360" max="360" step="0.1" value="${value}"></label>`).join("")}</fieldset>${slicers}</section></div><div class="dialog-actions">${download}${makePrimary}<button class="primary-action" type="submit">Dateiangaben speichern</button></div><p class="form-message" aria-live="polite"></p></form>${history}`;
+}
+
+export function slicerNoReactionMarkup(downloadUrl: string): string {
+  return `Kein Slicer hat reagiert. Ist das Programm installiert und für diese Links registriert? <a href="${escapeMarkup(downloadUrl)}">Datei stattdessen herunterladen</a> (Link fünf Minuten gültig)`;
 }
 
 export function slicerHandoffStatusMarkup(downloadUrl: string): string {

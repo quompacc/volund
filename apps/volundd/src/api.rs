@@ -13,9 +13,8 @@ use volund_core::ContentHash;
 use crate::api_auth;
 use crate::api_error::ApiError;
 use crate::api_models::{
-    AddModelComponentRequest, CreateModelRequest, CreateSlicerHandoffRequest,
-    EnqueuePreviewRequest, MoveFileRequest, MoveFileResponse, RemoveModelComponentRequest,
-    UpdateModelFileRequest, UpdateModelRequest,
+    AddModelComponentRequest, CreateModelRequest, EnqueuePreviewRequest, MoveFileRequest,
+    MoveFileResponse, RemoveModelComponentRequest, UpdateModelFileRequest, UpdateModelRequest,
 };
 use crate::api_query::{CatalogQuery, PageQuery};
 use crate::artifact_stream;
@@ -39,6 +38,7 @@ pub(crate) struct ApiState {
     pub support_root: PathBuf,
     pub identity: IdentityConfig,
     pub session: SessionConfig,
+    pub slicer: crate::slicer_handoff::SlicerConfig,
 }
 
 /// Build the versioned catalog HTTP API with a shared database pool.
@@ -85,6 +85,21 @@ pub fn router_with_security(
     identity: IdentityConfig,
     session: SessionConfig,
 ) -> Router {
+    let slicer = crate::slicer_handoff::SlicerConfig::from_environment();
+    let state = (derived_root, support_root, identity, session, slicer);
+    router_with_state(pool, web_root, state)
+}
+
+pub(crate) type StateParts = (
+    PathBuf,
+    PathBuf,
+    IdentityConfig,
+    SessionConfig,
+    crate::slicer_handoff::SlicerConfig,
+);
+
+pub(crate) fn router_with_state(pool: PgPool, web_root: PathBuf, parts: StateParts) -> Router {
+    let (derived_root, support_root, identity, session, slicer) = parts;
     let index = web_root.join("index.html");
     let incoming_root = derived_root
         .parent()
@@ -97,6 +112,7 @@ pub fn router_with_security(
         support_root,
         identity,
         session,
+        slicer,
     };
     let request_state = state.clone();
     let public_api = crate::api_public::routes().route_layer(middleware::from_fn_with_state(
@@ -183,10 +199,10 @@ fn protected_routes(state: ApiState) -> Router<ApiState> {
             "/models/{model_id}/files/{file_id}",
             axum::routing::patch(update_model_file),
         )
-        .route("/slicer-targets", get(slicer_targets))
+        .route("/slicer-targets", get(crate::slicer_handoff::list_targets))
         .route(
             "/models/{model_id}/files/{file_id}/slicer-handoff",
-            post(create_slicer_handoff),
+            post(crate::slicer_handoff::create_route),
         )
         .route(
             "/models/{model_id}/components",
@@ -293,22 +309,6 @@ async fn update_model_file(
         .and_then(|files| files.into_iter().find(|file| file.id == file_id))
         .map(Json)
         .ok_or_else(|| ApiError::NotFound("model file relationship not found".to_owned()))
-}
-
-async fn slicer_targets() -> Result<impl IntoResponse, ApiError> {
-    crate::slicer_handoff::targets().map(Json)
-}
-
-async fn create_slicer_handoff(
-    State(state): State<ApiState>,
-    Extension(actor): Extension<AuthenticatedSession>,
-    Path((model_id, file_id)): Path<(String, String)>,
-    Json(request): Json<CreateSlicerHandoffRequest>,
-) -> Result<impl IntoResponse, ApiError> {
-    api_auth::require_catalog_write(&actor)?;
-    crate::slicer_handoff::create(&state, &actor, &model_id, &file_id, request)
-        .await
-        .map(Json)
 }
 
 async fn create_model(

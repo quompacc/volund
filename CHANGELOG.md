@@ -52,6 +52,15 @@ until a signed release tag is created.
 
 ### Fixed
 
+- Slicer-Übergabe nach ADR 0031: Jeder Download prüft erneut Konto, Modell,
+  Druckbar-Markierung, Datei und Ziel; ein Token bedient höchstens acht
+  Anfragen und wird nie gecacht (`no-store`, `no-referrer`). Pro Konto sind
+  höchstens zehn offene Übergaben möglich (429). Unvollständig konfigurierte
+  Ziele (z. B. ohne `VOLUND_PUBLIC_BASE_URL`) liefern 503
+  `slicer_handoff_misconfigured`, und die Oberfläche erklärt das, statt
+  wirkungslose Knöpfe anzubieten. Reagiert kein lokaler Slicer, erscheint nach
+  2,5 s ein Hinweis mit Download-Link. Migration 0033 ergänzt den
+  Nutzungszähler; abgelaufene Übergaben entfernt die Retention.
 - Worker-Leases nach ADR 0030: Vorschau- und Scan-Worker halten jeden
   übernommenen Job über eine Sitzungssperre der Datenbank. Stirbt ein Worker
   (OOM, Neustart, Kill), erkennt der nächste Worker-Lauf den verwaisten Job

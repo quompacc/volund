@@ -261,8 +261,12 @@ offline('switch', 'old')
 container = Container()
 container.guest('verify-boot', 'old')
 client.login()
-assert snapshot(client) == upgraded, 'catalog changed across rollback'
+# With a newer schema the rollback restores the frozen pre-upgrade dump, which
+# deliberately discards the writes made by the candidate.
+full = (rootfs / 'var/backups/volund-j3/full-rollback').is_file()
+assert snapshot(client) == (before if full else upgraded), 'catalog changed across rollback'
 direct_access_refused()
 container.poweroff()
-print('PASS: Rollback auf den Vorgängerstand; Katalog und Artefakte unverändert', flush=True)
+print('PASS: Rollback auf den Vorgängerstand ' + ('(vollständig per Dump)' if full else '(nur Binärdateien)')
+      + '; Katalog wie erwartet', flush=True)
 print(f'PASS: J.2-J.4-Probe vollständig; Probenbaum {base} kann entfernt werden', flush=True)

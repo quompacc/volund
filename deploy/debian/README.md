@@ -275,7 +275,8 @@ After successful migration, install the reviewed artifacts, start only the
 required units, and validate schema, version, health, static assets, login, and
 the catalog while the route remains closed. For migrations 0031 and 0032, a
 binary-only rollback to v0.38.3 is invalid: its doctor and daemon reject the
-32-migration schema. The tested full rollback is:
+32-migration schema. Likewise, after migration 0033 a binary-only rollback to
+v0.39.0 is invalid. The tested full rollback is:
 
 1. Keep the route and every application writer stopped.
 2. Restore the verified frozen dump into a newly named database owned by
@@ -429,12 +430,14 @@ Die Probe
    `systemctl stop` mitten in einer Konvertierung. Der Job muss mit Versuch 2
    wieder eingereiht, die Unit erfolgreich beendet und ohne Restprozesse sein;
    danach schließt der Timer den Job ab (ADR 0030);
-7. stellt auf den Vorgängerstand zurück und verlangt den Katalog des
-   Kandidaten unverändert.
-
-Der Rückweg ist ohne Datenbankrestore gültig, solange zwischen beiden Ständen
-keine Migration liegt. Mit neuen Migrationen gilt der vollständige Rückweg aus
-„Upgrade and full rollback“, den `tests/upgrade-rehearsal.py` probt. Die Probe
+7. stellt auf den Vorgängerstand zurück. Ohne neue Migrationen genügen die
+   alten Binärdateien, und der Katalog des Kandidaten muss unverändert sein.
+   Lehnt der Vorgängerstand das Schema ab, probt sie den vollständigen Rückweg
+   aus „Upgrade and full rollback“: Der vor dem Upgrade eingefrorene Dump wird
+   mit `deploy/backup/volund-restore` in eine neue Datenbank gespielt, mit dem
+   alten `database-doctor` geprüft und erst dann gegen die quarantänisierte
+   Kandidatendatenbank getauscht. Danach muss der Katalog dem Stand vor dem
+   Upgrade entsprechen. Die Probe
 greift auf keinen Hostdienst und keine Hostdaten zu; der Container hat nur
 einen privaten veth-Link (`10.231.0.0/30`). Nach `PASS` bleibt das Rootfs zur
 Einsicht liegen und wird danach ausschließlich unter dem exakten Probenpfad

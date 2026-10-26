@@ -22,6 +22,10 @@ use crate::user_admin::UserAdminError;
 
 pub(crate) enum ApiError {
     BadRequest(String),
+    /// A dependency or operator configuration is missing (503) with a stable code.
+    Unavailable(&'static str, String),
+    /// A per-account bound was reached (429) with a stable code.
+    TooMany(&'static str, String),
     Conflict(String),
     Forbidden,
     NotFound(String),
@@ -50,6 +54,8 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, code, message) = match self {
             Self::BadRequest(message) => (StatusCode::BAD_REQUEST, "bad_request", message),
+            Self::Unavailable(code, message) => (StatusCode::SERVICE_UNAVAILABLE, code, message),
+            Self::TooMany(code, message) => (StatusCode::TOO_MANY_REQUESTS, code, message),
             Self::Forbidden => (
                 StatusCode::FORBIDDEN,
                 "forbidden",

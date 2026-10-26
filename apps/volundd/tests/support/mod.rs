@@ -135,6 +135,13 @@ pub async fn authenticated_router(pool: &PgPool, router: axum::Router) -> axum::
     )
     .await
     .expect("create catalog test owner");
+    owner_session(pool, router).await
+}
+
+/// Add a new session of the owner created by [`authenticated_router`].
+#[allow(dead_code)] // Each integration-test crate compiles this shared module independently.
+pub async fn owner_session(pool: &PgPool, router: axum::Router) -> axum::Router {
+    const PASSWORD: &str = "catalog test password with enough entropy";
     let logged_in = login(
         pool,
         LoginInput {

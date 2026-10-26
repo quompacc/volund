@@ -1014,6 +1014,8 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "403": { description: Catalog-write capability is required. }
         "404": { $ref: "#/components/responses/NotFound" }
+        "429": { description: "slicer_handoff_limit: the account already holds ten open handoffs (ADR 0031)." }
+        "503": { description: "slicer_handoff_misconfigured: targets or the public HTTPS base URL are invalid." }
   /api/v1/slicer-targets:
     get:
       operationId: listSlicerTargets
@@ -1026,6 +1028,10 @@ paths:
                 type: array
                 maxItems: 32
                 items: { $ref: "#/components/schemas/SlicerTarget" }
+        "503":
+          description: >-
+            slicer_handoff_misconfigured: targets are configured but invalid, or
+            no valid public HTTPS base URL exists. Clients must not offer a handoff.
   /api/v1/models/{modelId}/export:
     get:
       operationId: exportModel
@@ -1804,7 +1810,12 @@ paths:
           in: header
           schema: { type: string }
       responses:
-        "200": { description: Attachment bytes authorized by a short-lived purpose-bound bearer token. }
+        "200":
+          description: >-
+            Attachment bytes authorized by a short-lived purpose-bound bearer token.
+            Each token serves at most eight requests, and every request re-checks the
+            account, model, printable link, file, and target (ADR 0031). Responses
+            carry Cache-Control no-store and Referrer-Policy no-referrer.
         "206": { description: One satisfiable byte range. }
         "404": { $ref: "#/components/responses/NotFound" }
   /api/v1/files/{fileId}/move:

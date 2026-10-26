@@ -10,7 +10,8 @@ import { mountModelHistory } from "./model-history";
 import { bindCatalogHistories } from "./catalog-history";
 import { mountAuthors } from "./authors";
 import { mountCollections, mountTags } from "./metadata-catalog";
-import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilterOptions, modelFilesMarkup, modelProblemState, slicerHandoffStatusMarkup, thumbnailPanelMarkup } from "./model-presentation";
+import { loadSlicerTargets, mountSlicerButtons } from "./slicer-launch";
+import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilterOptions, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
 import { PdfViewer, pdfViewerMarkup } from "./pdf-viewer";
 import { preferredModelFile, settingString } from "./preferences";
 import type { Artifact, ModelFile, ModelSummary } from "./types";
@@ -155,7 +156,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
       const [filePage, collectionsCatalog, tagsCatalog, settings, preferences, thumbnailCandidates, slicerTargets, problems] = await Promise.all([
         catalogApi.modelFiles(model.id), catalogApi.collections(), catalogApi.tags(false), identityApi.settings(),
         identityApi.preferences(),
-        catalogApi.thumbnailCandidates(model.id), catalogApi.slicerTargets().catch(() => []),
+        catalogApi.thumbnailCandidates(model.id), loadSlicerTargets(catalogApi.slicerTargets),
         catalogApi.modelProblems(model.id),
       ]);
       const files = filePage.items;
@@ -392,17 +393,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
             status.classList.add("error"); status.textContent = error instanceof Error ? error.message : "Dateiangaben konnten nicht gespeichert werden.";
           } finally { button.disabled = false; }
         });
-        dialog.querySelectorAll<HTMLButtonElement>("[data-slicer-target]").forEach((slicerButton) => slicerButton.addEventListener("click", async () => {
-          const status = dialog.querySelector<HTMLElement>("#slicer-status")!;
-          slicerButton.disabled = true; status.textContent = "Slicer-Übergabe wird vorbereitet …";
-          try {
-            const handoff = await catalogApi.createSlicerHandoff(model.id, file.id, slicerButton.dataset.slicerTarget!);
-            status.innerHTML = slicerHandoffStatusMarkup(handoff.downloadUrl);
-            window.location.href = handoff.launchUrl;
-          } catch (error) {
-            status.textContent = error instanceof Error ? error.message : "Slicer konnte nicht geöffnet werden.";
-          } finally { slicerButton.disabled = false; }
-        }));
+        mountSlicerButtons(dialog, (targetId) => catalogApi.createSlicerHandoff(model.id, file.id, targetId));
       };
       const fileSection = host.querySelector<HTMLElement>(".model-files-section")!;
       const contextMenu = host.querySelector<HTMLElement>("#model-file-context-menu")!;

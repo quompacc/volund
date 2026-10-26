@@ -110,6 +110,11 @@ pub async fn execute(
         .map_err(|error| format!("cannot begin retention result: {error}"))?;
     let scan=sqlx::query("UPDATE volund.scan_runs SET error_message=NULL WHERE status IN ('completed','failed','cancelled') AND finished_at<now()-make_interval(days=>$1::int) AND error_message IS NOT NULL").bind(diagnostic_days).execute(&mut *final_tx).await.map_err(|error|format!("cannot clear scan diagnostics: {error}"))?.rows_affected();
     let conversion=sqlx::query("UPDATE volund.conversion_runs SET diagnostics='[]'::jsonb WHERE status IN ('ready','partial','failed','cancelled','timed-out') AND finished_at<now()-make_interval(days=>$1::int) AND diagnostics<>'[]'::jsonb").bind(diagnostic_days).execute(&mut *final_tx).await.map_err(|error|format!("cannot clear conversion diagnostics: {error}"))?.rows_affected();
+    // Expired slicer tokens can no longer be used; keep them one day as a trace.
+    sqlx::query("DELETE FROM volund.slicer_handoffs WHERE expires_at < now()-interval '1 day'")
+        .execute(&mut *final_tx)
+        .await
+        .map_err(|error| format!("cannot remove expired slicer handoffs: {error}"))?;
     let cleared = i64::try_from(scan + conversion).map_err(|_| "diagnostic count overflow")?;
     if codes.is_empty() {
         codes.push("cleanup_completed".into());
