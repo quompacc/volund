@@ -8,6 +8,17 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-10-26
+
+### Upgrade
+
+- Neue Migrationen 0033–0036 (Slicer-Nutzungszähler, gespeicherte Ansichten,
+  API-Tokens, Lesemarker der Benachrichtigungen). Ein reiner Binär-Rollback auf
+  0.39.0 ist danach ungültig; es gilt der vollständige Rückweg mit dem
+  eingefrorenen Dump aus `deploy/debian/README.md`, den die J.2–J.4-Bootprobe
+  probt. Die Worker-Units erhalten `KillMode=mixed`, `TimeoutStopSec=30s` und
+  (Vorschau) `OOMPolicy=continue`; die Beispielunits neu installieren.
+
 ### Added
 
 - Benachrichtigungszentrale in der Oberfläche nach ADR 0038: Eine Glocke in der

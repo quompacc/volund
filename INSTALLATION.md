@@ -1,6 +1,6 @@
 # Installing VÖLUND
 
-VÖLUND 0.39.0 is installed from source. There is currently no supported binary
+VÖLUND 0.40.0 is installed from source. There is currently no supported binary
 package, container image, guided installer, or unattended upgrade mechanism.
 The validated runtime target is Debian 13 (`trixie`) on x86-64 with PostgreSQL
 17, OpenCascade 7.8, Assimp, and systemd.

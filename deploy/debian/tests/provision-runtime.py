@@ -39,7 +39,7 @@ with Path('/srv/volund/scratch/daemon.log').open('w') as log:
             assert daemon.poll() is None, 'Testdaemon vorzeitig beendet'
             try:
                 with urllib.request.urlopen(origin + '/api/v1/health', timeout=1) as response:
-                    assert json.load(response) == {'status': 'ok', 'version': '0.39.0'}
+                    assert json.load(response) == {'status': 'ok', 'version': '0.40.0'}
                 break
             except urllib.error.URLError:
                 time.sleep(0.1)

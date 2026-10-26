@@ -50,7 +50,7 @@ VOLUND_BACKUP_DIR="$root/backups" \
 VOLUND_BACKUP_SOURCE_PATH="$root/source" \
 VOLUND_BACKUP_DATABASE=volund_test \
 VOLUND_BACKUP_RETENTION_DAYS=0 \
-VOLUND_VERSION=0.39.0 \
+VOLUND_VERSION=0.40.0 \
 "${BACKUP_SCRIPT:?BACKUP_SCRIPT is required}" >"$root/output.log"
 
 test "$(find "$root/backups" -name 'volund-*.dump' | wc -l)" -eq 1
@@ -62,7 +62,7 @@ test "$(stat -c %a "$dump")" = 600
 grep -q "operational_components" "$root/psql.log"
 grep -q "operational_log_events" "$root/psql.log"
 grep -q '"event":"backup.completed"' "$root/output.log"
-grep -q '"version":"0.39.0"' "$root/output.log"
+grep -q '"version":"0.40.0"' "$root/output.log"
 if grep -q "$root" "$root/output.log"; then
     echo "backup structured log leaked a private path" >&2
     exit 1
