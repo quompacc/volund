@@ -1,5 +1,6 @@
-import { ApiError, libraryApi } from "./api";
+import { ApiError, jobsApi, libraryApi } from "./api";
 import { confirmExact } from "./confirmation";
+import { dryRunMarkup, formatBytes, scanActive, scanProgressMarkup } from "./library-onboarding";
 import type { ManagedLibrary } from "./types";
 
 export function libraryPanel(libraries: ManagedLibrary[]): string {
@@ -10,6 +11,7 @@ export function libraryPanel(libraries: ManagedLibrary[]): string {
       <label>Anzeigename<input name="name" required maxlength="160" placeholder="CAD-Archiv"></label>
       <label class="library-path">Absoluter Debian-Pfad<input name="path" required maxlength="4096" placeholder="/srv/cad/archive"></label>
       <button type="button" class="secondary-action" data-validate-library>Pfad prüfen</button>
+      <button type="button" class="secondary-action" data-dry-run-library>Probelauf</button>
       <button class="primary-action">Bibliothek anlegen</button>
     </form>
     <div id="library-validation" class="library-validation" aria-live="polite"></div>
@@ -27,6 +29,23 @@ export function bindLibraryActions(host: HTMLElement, refresh: () => Promise<voi
       showValidation(host, `Gültig: ${result.canonicalPath} · lesbar · ${write}`);
     });
   });
+  create?.querySelector<HTMLButtonElement>("[data-dry-run-library]")?.addEventListener("click", () => {
+    const path = String(new FormData(create).get("path"));
+    void run(host, async () => {
+      showValidation(host, "Probelauf liest den Ordner, ohne etwas zu ändern …");
+      host.querySelector<HTMLElement>("#library-validation")!.innerHTML = dryRunMarkup(await libraryApi.dryRun(path));
+    });
+  });
+  host.querySelectorAll<HTMLButtonElement>("[data-cancel-scan]").forEach((button) => button.addEventListener("click", () => {
+    void run(host, async () => {
+      const id = button.dataset.cancelScan!;
+      const confirmation = await confirmExact(`CANCEL ${id}`, "Der Scan wird abgebrochen; bereits indexierte Daten bleiben unverändert.");
+      await jobsApi.cancelRun("scan", id, confirmation);
+      showMessage(host, `Abbruch für Scan ${id} angefordert.`);
+      await refresh();
+      void pollScanStatus(refresh);
+    });
+  }));
   create?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = new FormData(create);
@@ -103,7 +122,7 @@ export function libraryRow(library: ManagedLibrary): string {
     ? `${library.latestScanStatus}${library.latestScanStartedAtUnixMs ? ` · ${new Date(library.latestScanStartedAtUnixMs).toLocaleString()}` : ""}`
     : "noch nicht gescannt";
   const status = library.enabled ? "AKTIV" : "DEAKTIVIERT";
-  const scanning = library.latestScanStatus === "queued" || library.latestScanStatus === "running";
+  const scanning = scanActive(library.latestScan) || library.latestScanStatus === "queued" || library.latestScanStatus === "running";
   const blocked = library.storage.state === "blocked";
   const capacity = library.storage.availableBytes === null || library.storage.totalBytes === null
     ? "Kapazität unbekannt"
@@ -120,6 +139,7 @@ export function libraryRow(library: ManagedLibrary): string {
       <button class="secondary-action" data-library-scan="${escapeAttribute(library.key)}" data-full="true"${library.enabled && !scanning && !blocked ? "" : " disabled"}>Vollscan</button>
       <button class="secondary-action" data-library-toggle="${escapeAttribute(library.key)}" data-revision="${library.revision}" data-enabled="${library.enabled}">${library.enabled ? "Deaktivieren" : "Aktivieren"}</button>
     </div>
+    ${scanProgressMarkup(library.key, library.latestScan)}
   </article>`;
 }
 
@@ -140,12 +160,6 @@ function storageReason(code: string): string {
     storage_capacity_unknown: "Kapazität nicht messbar",
   };
   return reasons[code] ?? code;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
-  return `${bytes} B`;
 }
 
 async function pollScanStatus(refresh: () => Promise<void>): Promise<void> {

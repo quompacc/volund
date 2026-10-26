@@ -425,6 +425,71 @@ paths:
           description: Library-administration capability is required.
         "409":
           $ref: "#/components/responses/Conflict"
+  /api/v1/libraries/dry-run:
+    post:
+      operationId: dryRunLibrary
+      description: >-
+        Read-only onboarding dry run (ADR 0035): walks a prospective library
+        path like the scanner, bounded to 500,000 entries and 20 seconds,
+        without hashing, writing, or registering anything.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string, maxLength: 4096 }
+      responses:
+        "200":
+          description: What a first scan would index, what would make it fail, and overlaps with registered libraries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canonicalPath, files, bytes, directories, cadFiles, formats, otherFiles, symlinksSkipped, blockers, blockerCount, largestFiles, overlaps, truncated, elapsedMs]
+                properties:
+                  canonicalPath: { type: string }
+                  files: { type: integer }
+                  bytes: { type: integer }
+                  directories: { type: integer }
+                  cadFiles: { type: integer }
+                  formats: { type: object, additionalProperties: { type: integer } }
+                  otherFiles: { type: integer }
+                  symlinksSkipped: { type: integer }
+                  blockers:
+                    type: array
+                    maxItems: 20
+                    items:
+                      type: object
+                      required: [code, path]
+                      properties:
+                        code: { type: string, enum: [directory_unreadable, entry_unreadable, name_not_utf8, path_invalid] }
+                        path: { type: string }
+                  blockerCount: { type: integer }
+                  largestFiles:
+                    type: array
+                    maxItems: 5
+                    items:
+                      type: object
+                      required: [path, bytes]
+                      properties: { path: { type: string }, bytes: { type: integer } }
+                  overlaps:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, path, relation]
+                      properties:
+                        key: { type: string }
+                        path: { type: string }
+                        relation: { type: string, enum: [same, inside, contains] }
+                  truncated: { type: boolean }
+                  elapsedMs: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { description: Library administration is required. }
   /api/v1/libraries/validate:
     post:
       operationId: validateLibraryPath
@@ -2700,6 +2765,21 @@ components:
           type: [string, "null"]
         latestScanStartedAtUnixMs:
           type: [integer, "null"]
+        latestScan:
+          description: Latest scan run with live progress (ADR 0035).
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [id, status, full, discoveredFiles, hashedFiles, attempt, cancellationRequested, errorMessage]
+              properties:
+                id: { type: string, format: uuid }
+                status: { type: string, enum: [queued, running, completed, failed, cancelled] }
+                full: { type: boolean }
+                discoveredFiles: { type: integer, minimum: 0 }
+                hashedFiles: { type: integer, minimum: 0 }
+                attempt: { type: integer, minimum: 1 }
+                cancellationRequested: { type: boolean }
+                errorMessage: { type: [string, "null"] }
         updatedAtUnixMs:
           type: integer
         storage:

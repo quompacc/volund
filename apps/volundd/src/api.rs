@@ -225,6 +225,7 @@ fn protected_routes(state: ApiState) -> Router<ApiState> {
             get(crate::api_library::list).post(crate::api_library::create),
         )
         .route("/libraries/validate", post(crate::api_library::validate))
+        .route("/libraries/dry-run", post(crate::library_dry_run::route))
         .route(
             "/libraries/{root_key}",
             axum::routing::patch(crate::api_library::update),

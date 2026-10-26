@@ -276,3 +276,12 @@ main p:not(.eyebrow), main small, main label, main dt, main dd, main code, main 
 .bulk-bar .bulk-clear { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .bulk-actions { display: flex; gap: 10px; }
 .bulk-bar .form-message { flex-basis: 100%; margin: 0; }
+
+/* Library onboarding dry run and scan progress (ADR 0035) */
+.dry-run-blockers, .dry-run-overlaps { margin: 8px 0; padding: 10px 12px; border-left: 4px solid var(--danger); border-radius: 6px; background: var(--danger-soft); }
+.dry-run-overlaps { border-left-color: var(--warning); background: var(--warning-soft); }
+.dry-run-blockers ul, .dry-run-overlaps ul { margin: 6px 0 0; padding-left: 18px; }
+.dry-run-ok { color: var(--text-muted); }
+.scan-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; grid-column: 1 / -1; color: var(--text-muted); }
+.scan-progress.scan-failed { color: var(--danger); }
+.scan-cancelling { font-style: italic; }

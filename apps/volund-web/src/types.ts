@@ -109,6 +109,7 @@ export interface ManagedLibrary extends LibraryRoot {
   filesystemPath: string;
   enabled: boolean;
   latestScanStartedAtUnixMs: number | null;
+  latestScan?: import("./library-onboarding").LatestScan | null;
   updatedAtUnixMs: number;
   storage: StorageObservation;
 }

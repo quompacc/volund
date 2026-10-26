@@ -4,6 +4,7 @@ import type { AuthorInput, AuthorSummary, CadFile, CatalogHistoryEvent, CatalogO
 import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-types";
 import type { ProblemOverviewPage } from "./problem-overview";
 import type { BulkEditRequest } from "./model-bulk-edit";
+import type { DryRunReport } from "./library-onboarding";
 
 export class ApiError extends Error {
   constructor(
@@ -304,6 +305,7 @@ export const identityApi = {
 
 export const libraryApi = {
   list: (): Promise<ManagedLibrary[]> => requestJson("/api/v1/libraries"),
+  dryRun: (path: string): Promise<DryRunReport> => postJson("/api/v1/libraries/dry-run", { path }),
   validatePath: (path: string): Promise<LibraryPathValidation> =>
     postJson("/api/v1/libraries/validate", { path }),
   create: (body: { key: string; name: string; path: string; confirmation: string }): Promise<ManagedLibrary> =>
@@ -343,8 +345,9 @@ export const jobsApi = {
   },
   get: (kind: string, id: string): Promise<ManagedJob> =>
     requestJson(`/api/v1/jobs/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`),
-  cancel: (job: ManagedJob, confirmation: string): Promise<ManagedJob> =>
-    postJson(`/api/v1/jobs/${encodeURIComponent(job.kind)}/${encodeURIComponent(job.id)}/cancel`, { confirmation }),
+  cancel: (job: ManagedJob, confirmation: string): Promise<ManagedJob> => jobsApi.cancelRun(job.kind, job.id, confirmation),
+  cancelRun: (kind: ManagedJob["kind"], id: string, confirmation: string): Promise<ManagedJob> =>
+    postJson(`/api/v1/jobs/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/cancel`, { confirmation }),
   retry: (job: ManagedJob, confirmation: string): Promise<ManagedJob> =>
     postJson(`/api/v1/jobs/${encodeURIComponent(job.kind)}/${encodeURIComponent(job.id)}/retry`, { confirmation }),
 };

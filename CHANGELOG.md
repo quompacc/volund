@@ -10,6 +10,14 @@ until a signed release tag is created.
 
 ### Added
 
+- Bibliotheks-Onboarding nach ADR 0035: Ein „Probelauf“ beim Anlegen liest
+  den Ordner nur lesend und meldet Dateien, Größe, erkannte CAD-Formate,
+  übersprungene Symlinks, die größten Dateien, Blocker, an denen ein Scan
+  scheitern würde (unlesbare Verzeichnisse, Namen ohne gültiges UTF-8), und
+  Überschneidungen mit registrierten Bibliotheken
+  (`POST /api/v1/libraries/dry-run`). Laufende Scans zeigen in der
+  Bibliotheksverwaltung ihren Fortschritt und lassen sich mit Bestätigung
+  abbrechen; fehlgeschlagene Scans zeigen ihre Ursache.
 - Abnahme der Viewer-Leistung für große Baugruppen
   (`apps/volund-web/tests/viewer-performance.mjs`): echte Browser (Edge über
   CDP, Firefox über WebDriver BiDi) messen Laden, Freigabe, Bildzeiten beim

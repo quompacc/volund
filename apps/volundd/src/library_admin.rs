@@ -19,6 +19,19 @@ pub enum LibraryAdminError {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LatestScan {
+    pub id: String,
+    pub status: String,
+    pub full: bool,
+    pub discovered_files: i64,
+    pub hashed_files: i64,
+    pub attempt: i32,
+    pub cancellation_requested: bool,
+    pub error_message: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ManagedLibrary {
     pub revision: i64,
     pub id: String,
@@ -31,6 +44,8 @@ pub struct ManagedLibrary {
     pub missing_file_count: i64,
     pub latest_scan_status: Option<String>,
     pub latest_scan_started_at_unix_ms: Option<i64>,
+    /// The latest scan run, with live progress while it is queued or running.
+    pub latest_scan: Option<LatestScan>,
     pub updated_at_unix_ms: i64,
     pub storage: StorageObservation,
 }
@@ -388,6 +403,18 @@ fn managed_library(row: &sqlx::postgres::PgRow) -> ManagedLibrary {
         latest_scan_started_at_unix_ms: row.get(9),
         updated_at_unix_ms: row.get(10),
         revision: row.get(11),
+        latest_scan: row.get::<Option<String>, _>(12).map(|id| LatestScan {
+            id,
+            status: row.get(13),
+            full: row.get(14),
+            discovered_files: row.get(15),
+            hashed_files: row.get(16),
+            attempt: row.get(17),
+            cancellation_requested: row.get(18),
+            error_message: row
+                .get::<Option<String>, _>(19)
+                .map(|message| crate::operational_log::sanitize(&message)),
+        }),
         storage: storage_health::probe(std::path::Path::new(&filesystem_path)),
     }
 }
@@ -517,7 +544,7 @@ const MANAGED_LIBRARY_SELECT: &str = "SELECT root.public_id::text, root.root_key
      (SELECT count(*)::bigint FROM volund.source_files source WHERE source.library_root_id = root.id AND source.missing_at IS NOT NULL), \
      (SELECT scan.status FROM volund.scan_runs scan WHERE scan.library_root_id = root.id ORDER BY scan.id DESC LIMIT 1), \
      (SELECT (extract(epoch FROM scan.started_at) * 1000)::bigint FROM volund.scan_runs scan WHERE scan.library_root_id = root.id ORDER BY scan.id DESC LIMIT 1), \
-     (extract(epoch FROM root.updated_at) * 1000)::bigint, root.revision FROM volund.library_roots root";
+     (extract(epoch FROM root.updated_at) * 1000)::bigint, root.revision,      latest.public_id::text, latest.status, latest.full_scan, latest.discovered_files, latest.hashed_files,      latest.attempt, latest.cancellation_requested_at IS NOT NULL, latest.error_message      FROM volund.library_roots root LEFT JOIN LATERAL (SELECT * FROM volund.scan_runs scan       WHERE scan.library_root_id = root.id ORDER BY scan.id DESC LIMIT 1) latest ON true";
 
 #[cfg(test)]
 mod tests {
