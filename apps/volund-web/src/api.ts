@@ -6,6 +6,7 @@ import type { ProblemOverviewPage } from "./problem-overview";
 import type { BulkEditRequest } from "./model-bulk-edit";
 import type { DryRunReport } from "./library-onboarding";
 import type { ApiToken, CreatedApiToken } from "./api-tokens-view";
+import type { NotificationPage } from "./notification-center";
 
 export class ApiError extends Error {
   constructor(
@@ -269,6 +270,8 @@ export const catalogApi = {
 };
 
 export const identityApi = {
+  notifications: (): Promise<NotificationPage> => requestJson("/api/v1/notifications"),
+  markNotificationsSeen: async (): Promise<void> => { await mutationJson("/api/v1/notifications/seen", "POST"); },
   apiTokens: (): Promise<ApiToken[]> => requestJson("/api/v1/account/tokens"),
   createApiToken: (name: string, scope: ApiToken["scope"], expiresInDays: number): Promise<CreatedApiToken> =>
     postJson("/api/v1/account/tokens", { name, scope, expiresInDays }),

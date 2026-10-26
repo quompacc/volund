@@ -14,6 +14,7 @@ import { onSessionExpired } from "./session-expiry";
 import { mountNavigationScroll } from "./navigation-scroll";
 import { mountCatalogView } from "./catalog-views";
 import { problemBadge } from "./problem-overview";
+import { mountNotifications, notificationToggleMarkup } from "./notification-center";
 import { mountRawCatalog } from "./raw-catalog";
 import type { CurrentSession } from "./types";
 import { applyThemePreference, browserThemeStorage, mountThemeToggle, readThemePreference } from "./theme";
@@ -40,7 +41,7 @@ function mountApplication(session: CurrentSession): void {
   const canEdit = session.role !== "viewer";
   app.innerHTML = `<header class="topbar">
     <button class="brand" data-view="dashboard" aria-label="VÖLUND Übersicht"><span class="brand-mark" aria-hidden="true">V</span><span><strong>VÖLUND</strong><small>CAD-Bibliothek</small></span></button>
-    <div class="top-actions">${canEdit ? '<button class="top-import" data-view="imports"><span class="icon icon-plus" aria-hidden="true"></span>Importieren</button>' : ""}<div class="health"><span id="health-dot"></span><span id="health-text">Verbindung wird geprüft</span></div><button id="theme-toggle" class="icon-button" type="button"></button><button id="logout" class="account-button">${escapeMarkup(session.displayName)} · Abmelden</button></div>
+    <div class="top-actions">${canEdit ? '<button class="top-import" data-view="imports"><span class="icon icon-plus" aria-hidden="true"></span>Importieren</button>' : ""}<div class="health"><span id="health-dot"></span><span id="health-text">Verbindung wird geprüft</span></div>${notificationToggleMarkup()}<button id="theme-toggle" class="icon-button" type="button"></button><button id="logout" class="account-button">${escapeMarkup(session.displayName)} · Abmelden</button></div>
   </header><div class="app-shell"><aside class="app-nav">
     <div class="nav-group"><p>Bibliothek</p><button data-view="dashboard"><i class="icon icon-home" aria-hidden="true"></i><span>Übersicht</span></button><button data-view="models"><i class="icon icon-cube" aria-hidden="true"></i><span>Modelle</span><b id="nav-model-count">—</b></button><button data-view="collections"><i class="icon icon-layers" aria-hidden="true"></i><span>Sammlungen</span></button><button data-view="tags"><i class="icon icon-tag" aria-hidden="true"></i><span>Tags</span></button><button data-view="authors"><i class="icon icon-user" aria-hidden="true"></i><span>Autoren</span></button><button data-view="problems"><i class="icon icon-alert" aria-hidden="true"></i><span>Probleme</span><b id="nav-problem-count"></b></button></div>
     <div class="nav-group"><p>Daten</p><button data-view="raw"><i class="icon icon-folder" aria-hidden="true"></i><span>Rohdateien</span><b id="nav-file-count">—</b></button>${canEdit ? '<button data-view="imports"><i class="icon icon-upload" aria-hidden="true"></i><span>Importe</span></button><button data-view="import-history"><i class="icon icon-history" aria-hidden="true"></i><span>Importhistorie</span></button>' : ""}</div>
@@ -50,6 +51,8 @@ function mountApplication(session: CurrentSession): void {
   const workspace = app.querySelector<HTMLElement>("#workspace")!;
   mountNavigationScroll(app.querySelector<HTMLElement>(".app-nav")!);
   mountThemeToggle(app.querySelector<HTMLButtonElement>("#theme-toggle")!, document.documentElement, themeStorage);
+  mountNotifications(app.querySelector<HTMLButtonElement>("#notifications-toggle")!, app.querySelector<HTMLElement>("#notification-panel")!,
+    { list: identityApi.notifications, markSeen: identityApi.markNotificationsSeen }, (view, id) => navigate(view, id));
   let currentView: AppView | undefined;
   let currentModelId: string | null = null;
   let disposeView: (() => void) | undefined;

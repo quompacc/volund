@@ -1265,6 +1265,49 @@ paths:
       responses:
         "204": { description: Revoked; the token stops working immediately. }
         "404": { description: No such active token of this account. }
+  /api/v1/notifications:
+    get:
+      operationId: listNotifications
+      description: >-
+        In-app notification center (ADR 0038), derived on request and filtered by
+        role. Administrators see backup, worker, and storage conditions and notable
+        security denials; catalog editors see failed conversions; administrators
+        also see failed scans. Conditions stay unread until resolved; events are
+        unread until the account marks the center seen.
+      responses:
+        "200":
+          description: Notifications, unread first, then by severity and time.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, attention, seenAtUnixMs]
+                properties:
+                  attention: { type: integer, minimum: 0, description: Active conditions plus unread events. }
+                  seenAtUnixMs: { type: [integer, "null"] }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, category, kind, severity, title, message, occurredAtUnixMs, view, modelId, unread]
+                      properties:
+                        key: { type: string }
+                        category: { type: string, enum: [job, storage, backup, worker, security] }
+                        kind: { type: string, enum: [condition, event] }
+                        severity: { type: string, enum: [info, warning, error] }
+                        title: { type: string }
+                        message: { type: string }
+                        occurredAtUnixMs: { type: integer }
+                        view: { type: string, enum: [problems, administration, model-problems] }
+                        modelId: { type: [string, "null"], format: uuid }
+                        unread: { type: boolean }
+  /api/v1/notifications/seen:
+    post:
+      operationId: markNotificationsSeen
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "204": { description: Events up to now count as read for this account. }
   /api/v1/saved-views:
     get:
       operationId: listSavedViews

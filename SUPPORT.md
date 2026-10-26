@@ -67,6 +67,11 @@ catalog does not guarantee a generated 3D preview.
   a development host, not on a production LXC; the operator's production
   upgrade remains a separate step. Clean installation (J.1) passed for 0.39.0
   in an empty Debian 13 rootfs.
+- Authentication is local (accounts, sessions, and personal API tokens). External
+  identity providers (OIDC, LDAP) and per-library or per-collection access
+  grants are deliberately deferred; roles apply instance-wide.
+- Notifications are in-app only (ADR 0038); there is no email or webhook
+  delivery.
 - VÖLUND is designed for a single instance and a small trusted team. Public
   multi-tenant SaaS operation is outside the current security model.
 - No independent security review has been completed.

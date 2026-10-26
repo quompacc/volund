@@ -10,6 +10,14 @@ until a signed release tag is created.
 
 ### Added
 
+- Benachrichtigungszentrale in der Oberfläche nach ADR 0038: Eine Glocke in der
+  Kopfleiste zeigt, was Aufmerksamkeit braucht. Administratoren sehen
+  veraltete oder fehlgeschlagene Backups, nicht laufende Hintergrunddienste,
+  knappen oder blockierten Bibliotheksspeicher, gehäufte fehlgeschlagene
+  Anmeldungen und fehlgeschlagene Scans; Bearbeiter sehen fehlgeschlagene
+  Konvertierungen. Zustände bleiben sichtbar, bis die Ursache behoben ist;
+  Ereignisse gelten nach dem Öffnen als gelesen. Es wird nichts nach außen
+  versendet.
 - Persönliche API-Tokens nach ADR 0037: Unter Konto → API-Tokens lassen sich
   Tokens für Skripte erzeugen (`Authorization: Bearer vlnd_…`), einmalig
   anzeigen, kopieren und widerrufen. Gespeichert wird nur ein SHA-256-Hash;

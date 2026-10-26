@@ -113,6 +113,12 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
     rule("GET", "/api/v1/models/search", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/saved-views", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/account/tokens", RoutePolicy::Authenticated),
+    rule("GET", "/api/v1/notifications", RoutePolicy::Authenticated),
+    rule(
+        "POST",
+        "/api/v1/notifications/seen",
+        RoutePolicy::Authenticated,
+    ),
     rule("POST", "/api/v1/account/tokens", RoutePolicy::Authenticated),
     rule(
         "DELETE",

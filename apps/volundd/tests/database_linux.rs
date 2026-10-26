@@ -98,6 +98,7 @@ async fn migration_builds_the_expected_schema_and_is_idempotent() {
             "model_source_files",
             "model_tags",
             "models",
+            "notification_reads",
             "operational_components",
             "operational_log_events",
             "password_credentials",

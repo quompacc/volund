@@ -285,3 +285,17 @@ main p:not(.eyebrow), main small, main label, main dt, main dd, main code, main 
 .scan-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; grid-column: 1 / -1; color: var(--text-muted); }
 .scan-progress.scan-failed { color: var(--danger); }
 .scan-cancelling { font-style: italic; }
+
+/* In-app notification center (ADR 0038) */
+.top-actions { position: relative; }
+.notification-toggle { position: relative; }
+.notification-toggle b { position: absolute; top: -4px; right: -6px; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.notification-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: min(420px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 12px 32px rgb(0 0 0 / 18%); }
+.notification-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.notification-item button { display: grid; gap: 3px; width: 100%; padding: 10px 12px; border: 0; border-left: 4px solid var(--border); border-radius: 6px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.notification-item button:hover, .notification-item button:focus-visible { background: var(--accent-soft); }
+.notification-item.tone-error button { border-left-color: var(--danger); }
+.notification-item.tone-warning button { border-left-color: var(--warning); }
+.notification-item.unread strong::after { content: " ●"; color: var(--accent); }
+.notification-item span, .notification-item small { color: var(--text-muted); }
+.notification-empty { margin: 8px; color: var(--text-muted); }
