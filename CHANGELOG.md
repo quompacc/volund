@@ -8,6 +8,23 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.40.1] - 2026-10-26
+
+### Fixed
+
+- Die Übersicht zeigte bei mehr als sechs Modellen nur die sechs zuletzt
+  bearbeiteten, ohne darauf hinzuweisen. Sie nennt jetzt „6 von N Modellen“
+  und verlinkt „Alle N Modelle anzeigen“.
+- Einheitliche Steuerelemente in Modellliste, gespeicherten Ansichten und
+  Massenbearbeitung: gleiche Höhe, Rahmen und Breiten, breiteres Suchfeld,
+  gleich hohe Karten mit Auswahlkästchen und volle Breite auf dem Handy.
+  Auf breiten Bildschirmen zeigt das Raster mehr, kleinere Karten statt drei
+  übergroßer. Textlinks (`.text-action`) sind jetzt gestaltet.
+
+### Upgrade
+
+- Keine Migrationen; ein reiner Binär-Rollback auf 0.40.0 bleibt gültig.
+
 ## [0.40.0] - 2026-10-26
 
 ### Upgrade

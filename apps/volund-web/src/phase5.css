@@ -299,3 +299,30 @@ main p:not(.eyebrow), main small, main label, main dt, main dd, main code, main 
 .notification-item.unread strong::after { content: " ●"; color: var(--accent); }
 .notification-item span, .notification-item small { color: var(--text-muted); }
 .notification-empty { margin: 8px; color: var(--text-muted); }
+
+/* One control size for list toolbars (filters, saved views, bulk edit, problems). */
+.model-list-filters :is(input:not([type="checkbox"]), select), .saved-views :is(input:not([type="checkbox"]), select), .bulk-bar :is(input:not([type="checkbox"]), select) {
+  box-sizing: border-box; width: 100%; height: 40px; min-height: 40px; padding: 0 11px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text);
+}
+.model-list-filters :is(input, select):focus, .saved-views :is(input, select):focus, .bulk-bar :is(input, select):focus { border-color: var(--accent); outline: none; }
+.model-list-filters button, .saved-views button, .bulk-bar button { box-sizing: border-box; min-height: 40px; }
+.model-list-filters label, .saved-views > label, .save-view-form label, .bulk-bar label:not(.bulk-clear) { display: grid; gap: 5px; width: 220px; min-width: 0; }
+.bulk-bar .bulk-clear { display: inline-flex; align-items: center; gap: 8px; width: auto; height: 40px; }
+.model-list-filters label:has(input[type="search"]) { width: 360px; }
+.save-view-form { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; }
+.saved-views, .model-list-filters { row-gap: 12px; }
+/* Selection wrappers keep every card of a row the same height. */
+.bulk-card { display: grid; grid-template-rows: auto 1fr; gap: 6px; }
+.bulk-card > .model-card { height: 100%; }
+.bulk-select { min-height: 24px; }
+/* Wide screens get more, smaller cards instead of three giant ones. */
+@media (min-width: 1700px) {
+  .model-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+}
+@media (max-width: 640px) {
+  .model-list-filters label, .model-list-filters label:has(input[type="search"]), .saved-views > label, .save-view-form, .save-view-form label, .bulk-bar label:not(.bulk-clear) { width: 100%; }
+}
+.dashboard-more { margin: 14px 0 0; color: var(--text-muted); }
+.text-action { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.text-action:hover { text-decoration-thickness: 2px; }

@@ -1,6 +1,6 @@
 # VÖLUND support matrix
 
-VÖLUND 0.40.0 is a pre-1.0 alpha technical foundation. The matrix records
+VÖLUND 0.40.1 is a pre-1.0 alpha technical foundation. The matrix records
 environments that have concrete repository evidence; it is not a promise of
 general platform compatibility or a declaration of full production readiness.
 

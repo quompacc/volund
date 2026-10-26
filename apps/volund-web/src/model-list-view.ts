@@ -249,11 +249,19 @@ function mountSavedViews(
   void refresh().catch(() => message("Gespeicherte Ansichten sind nicht verfügbar."));
 }
 
+/** Says when the dashboard shows only the most recent part of the catalog. */
+export function dashboardMoreMarkup(shown: number, total: number): string {
+  if (total <= shown) return "";
+  return `<p id="dashboard-model-more" class="dashboard-more">Zuletzt bearbeitet: ${shown} von ${total} Modellen · <button type="button" class="text-action" data-navigate="models">Alle ${total} Modelle anzeigen</button></p>`;
+}
+
 /** Dashboard: the most recently edited models plus catalog-wide totals. */
 export async function loadDashboardModels(host: HTMLElement, sources: ModelListSources): Promise<void> {
   const grid = host.querySelector<HTMLElement>("#model-grid-live")!;
   const page = await sources.search(`?limit=${DASHBOARD_RECENT}&offset=0`);
   grid.innerHTML = modelResultsMarkup(page, readModelListState(""));
+  host.querySelector("#dashboard-model-more")?.remove();
+  grid.insertAdjacentHTML("afterend", dashboardMoreMarkup(page.items.length, page.total));
   const count = host.querySelector<HTMLElement>("#dashboard-model-count");
   if (count) count.textContent = String(page.total);
   const files = host.querySelector<HTMLElement>("#dashboard-model-files");

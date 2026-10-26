@@ -26,7 +26,7 @@ describe("Produktversionsvertrag", () => {
       readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"),
     );
 
-    expect(pkg.version).toBe("0.40.0");
+    expect(pkg.version).toBe("0.40.1");
     expect(packageLock.version).toBe(pkg.version);
     expect(packageLock.packages[""].version).toBe(pkg.version);
     expect(cargo).toContain(`version = "${pkg.version}"`);

@@ -116,7 +116,7 @@ def http_probe(binary, database, web, port):
                 time.sleep(0.1)
         else:
             raise AssertionError(f'Testdaemon {port} startet nicht')
-        assert health == {'status': 'ok', 'version': '0.40.0'}, health
+        assert health == {'status': 'ok', 'version': '0.40.1'}, health
         for route in ('/', '/models/upgrade-rehearsal'):
             with urllib.request.urlopen(origin + route, timeout=5) as response:
                 assert response.read() == (web / 'index.html').read_bytes()

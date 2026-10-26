@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  loadDashboardModels, modelListUrl, modelSearchQuery, mountModelList, pageCount, pagerMarkup,
+  dashboardMoreMarkup, loadDashboardModels, modelListUrl, modelSearchQuery, mountModelList, pageCount, pagerMarkup,
   readModelListState, savedViewQuery, savedViewsMarkup, stateFromSavedView, tagFacetsMarkup,
 } from "./model-list-view";
 import type { ModelSearchPage, SavedView } from "./model-list-types";
@@ -131,6 +131,12 @@ describe("mounted model list", () => {
     expect(element.querySelector("#dashboard-model-count")!.textContent).toBe("40");
     expect(element.querySelector("#dashboard-model-files")!.textContent).toBe("80");
     expect(element.querySelector("#model-grid-live")!.textContent).toContain("Recent");
+    // Regression: the dashboard showed 6 of 8 models without saying so.
+    expect(element.querySelector("#dashboard-model-more")!.textContent).toContain("1 von 40 Modellen");
+    expect(element.querySelector('#dashboard-model-more [data-navigate="models"]')!.textContent).toBe("Alle 40 Modelle anzeigen");
+    await loadDashboardModels(element, { search: vi.fn().mockResolvedValue(page(["Only"], 1)), tags: vi.fn() });
+    expect(element.querySelector("#dashboard-model-more")).toBeNull();
+    expect(dashboardMoreMarkup(6, 6)).toBe("");
   });
 });
 
