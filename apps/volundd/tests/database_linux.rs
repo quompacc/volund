@@ -101,6 +101,7 @@ async fn migration_builds_the_expected_schema_and_is_idempotent() {
             "operational_log_events",
             "password_credentials",
             "retention_runs",
+            "saved_model_views",
             "scan_runs",
             "scan_schedules",
             "security_audit_events",

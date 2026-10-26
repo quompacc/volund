@@ -1,6 +1,7 @@
 import type { ModelProblem } from "./problem-types";
 import { checkSessionResponse } from "./session-expiry";
-import type { AuthorInput, AuthorSummary, CadFile, CatalogHistoryEvent, CatalogOptions, CollectionDetail, CollectionSummary, ConversionProfile, CurrentSession, Folder, Health, ImportCommit, ImportConfiguration, ImportDraft, ImportDraftLifecycle, ImportManifestEntry, ImportMetadataRequest, ImportReview, ImportStorage, ImportUpload, InvitationCreated, JobPage, LibraryPathValidation, LibraryRoot, LibraryScanResult, LifecycleAction, LifecyclePlan, LifecycleResult, ManagedJob, ManagedLibrary, ManagedUser, ModelComponent, ModelFile, ModelHistoryEvent, ModelSearchPage, ModelSummary, MovedFile, OperationsHealth, OwnSession, Page, Preview, PreviewEnqueue, QuarantineSummary, RetentionPreview, RetentionResult, ScanSchedule, Setting, SetupStatus, SlicerHandoff, SlicerTarget, TagSummary, ThumbnailCandidate, UpdateModelFileRequest, UpdateModelRequest, UserPreferences } from "./types";
+import type { AuthorInput, AuthorSummary, CadFile, CatalogHistoryEvent, CatalogOptions, CollectionDetail, CollectionSummary, ConversionProfile, CurrentSession, Folder, Health, ImportCommit, ImportConfiguration, ImportDraft, ImportDraftLifecycle, ImportManifestEntry, ImportMetadataRequest, ImportReview, ImportStorage, ImportUpload, InvitationCreated, JobPage, LibraryPathValidation, LibraryRoot, LibraryScanResult, LifecycleAction, LifecyclePlan, LifecycleResult, ManagedJob, ManagedLibrary, ManagedUser, ModelComponent, ModelFile, ModelHistoryEvent, ModelSummary, MovedFile, OperationsHealth, OwnSession, Page, Preview, PreviewEnqueue, QuarantineSummary, RetentionPreview, RetentionResult, ScanSchedule, Setting, SetupStatus, SlicerHandoff, SlicerTarget, TagSummary, ThumbnailCandidate, UpdateModelFileRequest, UpdateModelRequest, UserPreferences } from "./types";
+import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-types";
 
 export class ApiError extends Error {
   constructor(
@@ -143,6 +144,12 @@ export const catalogApi = {
     postJson(`/api/v1/files/${encodeURIComponent(fileId)}/move`, { destinationDirectory }),
   models: (): Promise<ModelSummary[]> => requestJson("/api/v1/models"),
   modelSearch: (query: string): Promise<ModelSearchPage> => requestJson(`/api/v1/models/search${query}`),
+  savedViews: (): Promise<SavedView[]> => requestJson("/api/v1/saved-views"),
+  createSavedView: (name: string, query: SavedViewQuery): Promise<SavedView> =>
+    postJson("/api/v1/saved-views", { name, query }),
+  removeSavedView: async (id: string): Promise<void> => {
+    await mutationJson(`/api/v1/saved-views/${encodeURIComponent(id)}`, "DELETE");
+  },
   previewLifecycle: (action: LifecycleAction, targetId: string, expectedRevision: number, parentId: string | null = null): Promise<LifecyclePlan> =>
     postJson("/api/v1/lifecycle/preview", { action, targetId, parentId, expectedRevision }),
   applyLifecycle: (plan: LifecyclePlan, confirmation: string): Promise<LifecycleResult> =>

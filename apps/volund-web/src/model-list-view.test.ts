@@ -2,9 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadDashboardModels, modelListUrl, modelSearchQuery, mountModelList, pageCount, pagerMarkup,
-  readModelListState, tagFacetsMarkup,
+  readModelListState, savedViewQuery, savedViewsMarkup, stateFromSavedView, tagFacetsMarkup,
 } from "./model-list-view";
-import type { ModelSearchPage, ModelSummary, TagSummary } from "./types";
+import type { ModelSearchPage, SavedView } from "./model-list-types";
+import type { ModelSummary, TagSummary } from "./types";
 
 function model(name: string): ModelSummary {
   return {
@@ -130,5 +131,70 @@ describe("mounted model list", () => {
     expect(element.querySelector("#dashboard-model-count")!.textContent).toBe("40");
     expect(element.querySelector("#dashboard-model-files")!.textContent).toBe("80");
     expect(element.querySelector("#model-grid-live")!.textContent).toContain("Recent");
+  });
+});
+
+describe("saved model list views", () => {
+  const view: SavedView = { id: "view-1", name: "Teile <A>", query: { q: "bracket", kind: "part", sort: "name" }, createdAtUnixMs: 0 };
+
+  it("stores filters but never the page, and restores them", () => {
+    const state = { q: " bracket ", tag: "", kind: "part", sort: "name" as const, page: 4 };
+    expect(savedViewQuery(state)).toEqual({ q: "bracket", kind: "part", sort: "name" });
+    expect(savedViewQuery(readModelListState(""))).toEqual({});
+    expect(stateFromSavedView(view)).toEqual({ q: "bracket", tag: "", kind: "part", sort: "name", page: 1 });
+    expect(savedViewsMarkup([view], "view-1")).toContain(">Teile &lt;A&gt;</option>");
+    expect(savedViewsMarkup([view], "")).toMatch(/data-delete-view disabled/);
+  });
+
+  it("applies, saves, and deletes views from the toolbar", async () => {
+    const search = vi.fn().mockResolvedValue(page(["Alpha"]));
+    const views = [view];
+    const api = {
+      list: vi.fn().mockImplementation(() => Promise.resolve([...views])),
+      create: vi.fn().mockImplementation((name: string, query: SavedView["query"]) => {
+        const created = { id: "view-2", name, query, createdAtUnixMs: 1 };
+        views.push(created);
+        return Promise.resolve(created);
+      }),
+      remove: vi.fn().mockImplementation((id: string) => {
+        views.splice(views.findIndex((item) => item.id === id), 1);
+        return Promise.resolve();
+      }),
+    };
+    const element = host();
+    mountModelList(element, { search, tags: () => Promise.resolve({ items: [], limit: 100, offset: 0, total: 0 }), savedViews: api });
+    await vi.waitFor(() => expect(element.querySelector('select[name="savedView"] option[value="view-1"]')).not.toBeNull());
+    const select = element.querySelector<HTMLSelectElement>('select[name="savedView"]')!;
+    select.value = "view-1";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith("?q=bracket&kind=part&sort=name&limit=24&offset=0"));
+    expect(element.querySelector<HTMLInputElement>('input[name="q"]')!.value).toBe("bracket");
+    expect(element.querySelector<HTMLSelectElement>('select[name="kind"]')!.value).toBe("part");
+
+    const name = element.querySelector<HTMLInputElement>('input[name="viewName"]')!;
+    name.value = "Meine Teile";
+    element.querySelector<HTMLFormElement>("#save-view-form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await vi.waitFor(() => expect(element.textContent).toContain("Ansicht „Meine Teile“ gespeichert."));
+    expect(api.create).toHaveBeenCalledWith("Meine Teile", { q: "bracket", kind: "part", sort: "name" });
+    expect(element.querySelector('option[value="view-2"]')!.hasAttribute("selected")).toBe(true);
+
+    element.querySelector<HTMLButtonElement>("[data-delete-view]")!.click();
+    await vi.waitFor(() => expect(element.textContent).toContain("Ansicht gelöscht."));
+    expect(api.remove).toHaveBeenCalledWith("view-2");
+    expect(element.querySelector('option[value="view-2"]')).toBeNull();
+  });
+
+  it("reports a refused save without losing the filters", async () => {
+    const api = {
+      list: () => Promise.resolve([]),
+      create: () => Promise.reject(new Error("a saved view named 'X' already exists")),
+      remove: vi.fn(),
+    };
+    const element = host();
+    mountModelList(element, { search: () => Promise.resolve(page([])), tags: () => Promise.resolve({ items: [], limit: 100, offset: 0, total: 0 }), savedViews: api });
+    await vi.waitFor(() => expect(element.querySelector("#save-view-form")).not.toBeNull());
+    element.querySelector<HTMLInputElement>('input[name="viewName"]')!.value = "X";
+    element.querySelector<HTMLFormElement>("#save-view-form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await vi.waitFor(() => expect(element.textContent).toContain("already exists"));
   });
 });

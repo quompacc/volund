@@ -73,6 +73,7 @@ mod preview_process;
 pub mod problem_catalog;
 pub mod retention;
 pub mod runtime_log;
+pub mod saved_views;
 mod scan_control;
 pub mod scan_pipeline;
 pub mod scanner;

@@ -16,6 +16,9 @@ until a signed release tag is created.
   Modellübersicht nutzt sie mit Suchfeld, Filtern und Seitenwechsel; der
   Filterzustand steht in der URL und lässt sich als Lesezeichen teilen. Das
   Dashboard und der Navigationszähler laden nicht mehr den ganzen Katalog.
+- Gespeicherte Ansichten der Modellliste: Jedes Konto kann bis zu 50 benannte
+  Filterkombinationen speichern, auswählen und löschen (Migration 0034,
+  `/api/v1/saved-views`).
 - Boot-, Proxy-, Upgrade- und Rückwegprobe für J.2–J.4
   (`deploy/debian/tests/boot-probe.py`): bootet ein frisches Debian-13-Rootfs
   mit echtem systemd per `systemd-nspawn`, installiert nach dem Runbook, prüft

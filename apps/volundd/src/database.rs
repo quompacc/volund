@@ -8,8 +8,8 @@ use sqlx::{PgPool, Row};
 const DEFAULT_DATABASE: &str = "volund";
 const DEFAULT_USER: &str = "volund";
 const DEFAULT_SOCKET_DIRECTORY: &str = "/var/run/postgresql";
-pub const EXPECTED_MIGRATIONS: i64 = 33;
-pub const EXPECTED_SCHEMA_TABLES: i64 = 37;
+pub const EXPECTED_MIGRATIONS: i64 = 34;
+pub const EXPECTED_SCHEMA_TABLES: i64 = 38;
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
 

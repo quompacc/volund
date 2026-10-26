@@ -33,6 +33,16 @@ also had no text search, no sorting, and no way to share or keep a filtered view
   - A page beyond the end is clamped to the last page.
 - The dashboard asks for the six most recently edited models and reads the
   totals. The navigation counter asks for one item and reads `total`.
+- **Saved views** (migration 0034, `/api/v1/saved-views`):
+  - Each account can keep up to 50 named filter sets. Names are unique per
+    account, ignoring case.
+  - A view stores only `q`, `tag`, `kind`, and `sort`, never the page.
+  - It is normalized through the same validation as a live search, so it can
+    never hold a query the search would reject.
+  - Views are private display state. They are neither shared nor used as an
+    access rule.
+  - Selecting a view in the toolbar applies it; the current filters can be
+    saved under a new name or the selected view deleted.
 - Offset pagination is sufficient at this scale; the stable sort keys keep
   pages deterministic. Keyset pagination can follow if offsets become slow.
 

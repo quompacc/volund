@@ -1,5 +1,6 @@
 import { modelCardMarkup } from "./model-presentation";
-import type { ModelSearchPage, Page, TagSummary } from "./types";
+import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-types";
+import type { Page, TagSummary } from "./types";
 
 export type ModelSort = "updated" | "name" | "created";
 
@@ -20,6 +21,33 @@ const KINDS = ["part", "assembly", "project"];
 export interface ModelListSources {
   search: (query: string) => Promise<ModelSearchPage>;
   tags: () => Promise<Page<TagSummary>>;
+  savedViews?: {
+    list: () => Promise<SavedView[]>;
+    create: (name: string, query: SavedViewQuery) => Promise<SavedView>;
+    remove: (id: string) => Promise<void>;
+  };
+}
+
+/** The persisted part of a list state: filters, never the page. */
+export function savedViewQuery(state: ModelListState): SavedViewQuery {
+  const query: SavedViewQuery = {};
+  if (state.q.trim()) query.q = state.q.trim();
+  if (state.tag) query.tag = state.tag;
+  if (state.kind) query.kind = state.kind;
+  if (state.sort !== "updated") query.sort = state.sort;
+  return query;
+}
+
+export function stateFromSavedView(view: SavedView): ModelListState {
+  return readModelListState(`?${new URLSearchParams(view.query as Record<string, string>)}`);
+}
+
+export function savedViewsMarkup(views: SavedView[], selected: string): string {
+  return `<label>Gespeicherte Ansicht<select name="savedView"><option value="">Keine</option>${views.map((view) =>
+    `<option value="${escapeMarkup(view.id)}"${view.id === selected ? " selected" : ""}>${escapeMarkup(view.name)}</option>`).join("")}</select></label>
+    <button type="button" class="secondary-action" data-delete-view${selected ? "" : " disabled"}>Ansicht löschen</button>
+    <form id="save-view-form" class="save-view-form"><label>Neue Ansicht<input name="viewName" maxlength="80" required placeholder="Name der aktuellen Filter"></label><button class="secondary-action" type="submit">Ansicht speichern</button></form>
+    <p id="saved-view-message" class="form-message" aria-live="polite"></p>`;
 }
 
 export function readModelListState(search: string): ModelListState {
@@ -108,7 +136,7 @@ export function mountModelList(host: HTMLElement, sources: ModelListSources, win
   const grid = host.querySelector<HTMLElement>("#model-grid-live")!;
   const summary = host.querySelector<HTMLElement>("#model-list-summary")!;
   const pager = host.querySelector<HTMLElement>("#model-list-pager")!;
-  filters.innerHTML = modelListToolbarMarkup(state);
+  filters.innerHTML = `${modelListToolbarMarkup(state)}<div id="saved-views" class="saved-views"></div>`;
   let tags: TagSummary[] = [];
   const renderFacets = () => { facets.innerHTML = tagFacetsMarkup(tags, state.tag); };
   const load = async (): Promise<void> => {
@@ -160,8 +188,55 @@ export function mountModelList(host: HTMLElement, sources: ModelListSources, win
     if (button && !button.disabled) update({ page: Number(button.dataset.modelPage) });
   });
   void sources.tags().then((page) => { tags = page.items; renderFacets(); }, () => undefined);
+  if (sources.savedViews) mountSavedViews(filters.querySelector<HTMLElement>("#saved-views")!, sources.savedViews, () => state, (next) => {
+    form.q.value = next.q;
+    form.kind.value = next.kind;
+    form.sort.value = next.sort;
+    update(next);
+  });
   void load();
   return () => { sequence += 1; win.clearTimeout(debounce); };
+}
+
+function mountSavedViews(
+  host: HTMLElement,
+  api: NonNullable<ModelListSources["savedViews"]>,
+  current: () => ModelListState,
+  apply: (state: ModelListState) => void,
+): void {
+  let views: SavedView[] = [];
+  let selected = "";
+  const message = (text: string) => { host.querySelector<HTMLElement>("#saved-view-message")!.textContent = text; };
+  const render = () => { host.innerHTML = savedViewsMarkup(views, selected); };
+  const refresh = async () => { views = await api.list(); render(); };
+  host.addEventListener("change", (event) => {
+    const select = (event.target as HTMLElement).closest<HTMLSelectElement>('select[name="savedView"]');
+    if (!select) return;
+    selected = select.value;
+    const view = views.find((item) => item.id === selected);
+    render();
+    if (view) apply(stateFromSavedView(view));
+  });
+  host.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-delete-view]");
+    if (!button || !selected) return;
+    void api.remove(selected).then(async () => { selected = ""; await refresh(); message("Ansicht gelöscht."); },
+      (error: Error) => message(error.message));
+  });
+  host.addEventListener("submit", (event) => {
+    const form = (event.target as HTMLElement).closest<HTMLFormElement>("#save-view-form");
+    if (!form) return;
+    event.preventDefault();
+    const name = (form.elements.namedItem("viewName") as HTMLInputElement).value.trim();
+    if (!name) return;
+    void api.create(name, savedViewQuery(current())).then(async (view) => {
+      selected = view.id;
+      await refresh();
+      message(`Ansicht „${view.name}“ gespeichert.`);
+    }, (error: Error) => message(error.message));
+  });
+  render();
+  void refresh().catch(() => message("Gespeicherte Ansichten sind nicht verfügbar."));
 }
 
 /** Dashboard: the most recently edited models plus catalog-wide totals. */

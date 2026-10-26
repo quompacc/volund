@@ -60,7 +60,10 @@ function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models", clea
     ${dashboard ? dashboardStats() : ""}<section class="content-section"><div class="section-heading"><div><p class="eyebrow">${dashboard ? "ZULETZT BEARBEITET" : "MODELLARCHIV"}</p><h2>${dashboard ? "Aktuelle Modelle" : "Alle Modelle"}</h2></div><div class="section-tools"><span>LIVE-KATALOG</span></div></div>${dashboard ? "" : '<div id="model-tag-filters" class="tag-facets" aria-label="Modelle nach Tag filtern"></div>'}
     ${dashboard ? "" : '<div id="model-list-toolbar"></div><p id="model-list-summary" class="form-message" aria-live="polite"></p>'}
     <div id="model-grid-live" class="model-grid"><p class="loading-copy">Modelle werden geladen …</p></div>${dashboard ? "" : '<div id="model-list-pager"></div>'}</section></div>`;
-  const sources = { search: catalogApi.modelSearch, tags: () => catalogApi.tags(false) };
+  const sources = {
+    search: catalogApi.modelSearch, tags: () => catalogApi.tags(false),
+    savedViews: { list: catalogApi.savedViews, create: catalogApi.createSavedView, remove: catalogApi.removeSavedView },
+  };
   if (dashboard) void loadDashboardModels(host, sources).catch((error: Error) => showCatalogError(host, error.message));
   else cleanup.push(mountModelList(host, sources));
   if (dashboard) {

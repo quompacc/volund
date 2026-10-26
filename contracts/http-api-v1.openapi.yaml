@@ -1045,6 +1045,49 @@ paths:
                   total: { type: integer, minimum: 0 }
                   fileLinkTotal: { type: integer, minimum: 0, description: Linked files over all matching models. }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/saved-views:
+    get:
+      operationId: listSavedViews
+      description: The signed-in account's saved model list views, by name.
+      responses:
+        "200":
+          description: Own views only.
+          content:
+            application/json:
+              schema: { type: array, maxItems: 50, items: { $ref: "#/components/schemas/SavedView" } }
+    post:
+      operationId: createSavedView
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, query]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                query: { $ref: "#/components/schemas/SavedViewQuery" }
+      responses:
+        "201":
+          description: Saved; the query is normalized like a live search.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SavedView" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { description: A view with this name (ignoring case) exists. }
+        "429": { description: "saved_view_limit: at most 50 views per account." }
+  /api/v1/saved-views/{viewId}:
+    delete:
+      operationId: deleteSavedView
+      parameters:
+        - { name: viewId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "204": { description: Removed. }
+        "404": { description: No such view of this account. }
   /api/v1/slicer-targets:
     get:
       operationId: listSlicerTargets
@@ -3054,6 +3097,22 @@ components:
         targetId: { type: string, format: uuid }
         outcome: { type: string, enum: [applied] }
         revision: { type: integer, minimum: 1 }
+    SavedViewQuery:
+      type: object
+      additionalProperties: false
+      properties:
+        q: { type: string, maxLength: 200 }
+        tag: { type: string, format: uuid }
+        kind: { type: string, enum: [part, assembly, project] }
+        sort: { type: string, enum: [name, created] }
+    SavedView:
+      type: object
+      required: [id, name, query, createdAtUnixMs]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        query: { $ref: "#/components/schemas/SavedViewQuery" }
+        createdAtUnixMs: { type: integer }
     Model:
       type: object
       required: [id, slug, name, description, kind, licenseKind, licenseValue, authorName, primaryFileId, fileCount, formats, updatedAtUnixMs, tags, tagIds, collections, viewerRotation, revision, thumbnail]
