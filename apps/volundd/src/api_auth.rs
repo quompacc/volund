@@ -121,6 +121,7 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
     rule("GET", "/api/v1/models", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/models/search", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/saved-views", RoutePolicy::Authenticated),
+    rule("GET", "/api/v1/problems", RoutePolicy::Authenticated),
     rule("POST", "/api/v1/saved-views", RoutePolicy::Authenticated),
     rule(
         "DELETE",

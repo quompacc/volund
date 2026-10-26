@@ -71,6 +71,7 @@ pub mod preview_options;
 pub mod preview_pipeline;
 mod preview_process;
 pub mod problem_catalog;
+mod problem_overview;
 pub mod retention;
 pub mod runtime_log;
 pub mod saved_views;

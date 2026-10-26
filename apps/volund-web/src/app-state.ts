@@ -1,6 +1,6 @@
-export type AppView = "dashboard" | "models" | "model" | "model-problems" | "collections" | "tags" | "authors" | "raw" | "imports" | "import-history" | "administration";
+export type AppView = "dashboard" | "models" | "model" | "model-problems" | "problems" | "collections" | "tags" | "authors" | "raw" | "imports" | "import-history" | "administration";
 
-const APP_VIEWS: AppView[] = ["dashboard", "models", "model", "model-problems", "collections", "tags", "authors", "raw", "imports", "import-history", "administration"];
+const APP_VIEWS: AppView[] = ["dashboard", "models", "model", "model-problems", "problems", "collections", "tags", "authors", "raw", "imports", "import-history", "administration"];
 
 export function readAppView(search: string): AppView {
   const parameters = new URLSearchParams(search);

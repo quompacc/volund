@@ -12,6 +12,7 @@ import { mountAuthors } from "./authors";
 import { mountCollections, mountTags } from "./metadata-catalog";
 import { loadSlicerTargets, mountSlicerButtons } from "./slicer-launch";
 import { loadDashboardModels, mountModelList } from "./model-list-view";
+import { mountProblemOverview } from "./problem-overview";
 import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilterOptions, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
 import { PdfViewer, pdfViewerMarkup } from "./pdf-viewer";
 import { preferredModelFile, settingString } from "./preferences";
@@ -37,6 +38,7 @@ export function mountCatalogView(
   if (view === "dashboard" || view === "models") mountModelCatalog(viewHost, view, cleanup);
   else if (view === "model") mountModel(viewHost, modelId, cleanup, canEdit, canManageMetadata, navigate);
   else if (view === "model-problems") mountModelProblems(viewHost, modelId, canEdit, navigate);
+  else if (view === "problems") cleanup.push(mountProblemOverview(viewHost, catalogApi.problems, { model: (id) => navigate("model-problems", id), library: () => navigate("administration") }));
   else if (view === "imports") mountImports(viewHost, (id) => navigate("model", id));
   else if (view === "import-history") mountImportHistory(viewHost, (id) => navigate("model", id), () => navigate("imports"));
   else if (view === "authors") mountAuthors(viewHost, canManageMetadata);

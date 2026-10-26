@@ -10,6 +10,13 @@ until a signed release tag is created.
 
 ### Added
 
+- Zentrale Problemansicht nach ADR 0033: Die neue Ansicht „Probleme“ (mit
+  Zähler in der Navigation) und `GET /api/v1/problems` bündeln
+  Konvertierungs- und Baugruppenprobleme aller Modelle, fehlende oder nicht
+  verfügbare Originale und fehlgeschlagene Bibliotheks-Scans, gefiltert nach
+  Schweregrad und Status. Jeder Eintrag führt zum betroffenen Modell oder
+  zur Bibliotheksverwaltung; Ignorieren und Erledigen bleiben auf der
+  Problemseite des Modells.
 - Serverseitige Modellliste nach ADR 0032: `GET /api/v1/models/search` mit
   Volltextsuche (Name, Beschreibung, Autor, Tags), Tag- und Artfilter,
   Sortierung (zuletzt bearbeitet, Name, neueste) und Seiten samt Summen. Die

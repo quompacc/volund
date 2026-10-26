@@ -8,7 +8,9 @@ use crate::api_error::ApiError;
 use crate::session::AuthenticatedSession;
 
 pub(crate) fn routes() -> Router<ApiState> {
-    Router::new().route("/models/{model_id}/problems", get(list).put(update))
+    Router::new()
+        .route("/models/{model_id}/problems", get(list).put(update))
+        .route("/problems", get(crate::problem_overview::route))
 }
 
 async fn list(

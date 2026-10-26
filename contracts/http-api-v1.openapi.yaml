@@ -1045,6 +1045,57 @@ paths:
                   total: { type: integer, minimum: 0 }
                   fileLinkTotal: { type: integer, minimum: 0, description: Linked files over all matching models. }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/problems:
+    get:
+      operationId: listProblems
+      description: >-
+        Central problem view (ADR 0033): conversion and assembly problems of
+        every active model, missing or unavailable originals linked to models,
+        and libraries whose latest scan failed. Sorted by severity, then time.
+      parameters:
+        - { name: severity, in: query, schema: { type: string, enum: [info, warning, error], default: warning }, description: Minimum severity. }
+        - { name: status, in: query, schema: { type: string, enum: [open, ignored, resolved, all], default: open } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200":
+          description: One page, per-severity counts for the status filter, and a truncation flag.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, limit, offset, total, counts, truncated]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, scope, severity, status, code, message, occurredAtUnixMs, remediation]
+                      properties:
+                        key: { type: string }
+                        scope: { type: string, enum: [model, library] }
+                        modelId: { type: [string, "null"], format: uuid }
+                        modelName: { type: [string, "null"] }
+                        libraryKey: { type: [string, "null"] }
+                        severity: { type: string, enum: [info, warning, error] }
+                        status: { type: string, enum: [open, ignored, resolved] }
+                        code: { type: string }
+                        message: { type: string }
+                        sourceName: { type: [string, "null"] }
+                        occurredAtUnixMs: { type: integer }
+                        remediation: { type: string }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  total: { type: integer }
+                  counts:
+                    type: object
+                    required: [error, warning, info]
+                    properties:
+                      error: { type: integer }
+                      warning: { type: integer }
+                      info: { type: integer }
+                  truncated: { type: boolean }
+        "400": { $ref: "#/components/responses/BadRequest" }
   /api/v1/saved-views:
     get:
       operationId: listSavedViews
