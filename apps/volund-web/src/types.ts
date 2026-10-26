@@ -586,6 +586,11 @@ export interface PreviewEnqueue {
   status: "queued" | "running" | "ready";
 }
 
+/** One page of `GET /api/v1/models/search`. */
+export interface ModelSearchPage extends Page<ModelSummary> {
+  fileLinkTotal: number;
+}
+
 export interface Page<T> {
   items: T[];
   limit: number;

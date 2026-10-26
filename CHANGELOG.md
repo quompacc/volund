@@ -10,6 +10,12 @@ until a signed release tag is created.
 
 ### Added
 
+- Serverseitige Modellliste nach ADR 0032: `GET /api/v1/models/search` mit
+  Volltextsuche (Name, Beschreibung, Autor, Tags), Tag- und Artfilter,
+  Sortierung (zuletzt bearbeitet, Name, neueste) und Seiten samt Summen. Die
+  Modellübersicht nutzt sie mit Suchfeld, Filtern und Seitenwechsel; der
+  Filterzustand steht in der URL und lässt sich als Lesezeichen teilen. Das
+  Dashboard und der Navigationszähler laden nicht mehr den ganzen Katalog.
 - Boot-, Proxy-, Upgrade- und Rückwegprobe für J.2–J.4
   (`deploy/debian/tests/boot-probe.py`): bootet ein frisches Debian-13-Rootfs
   mit echtem systemd per `systemd-nspawn`, installiert nach dem Runbook, prüft

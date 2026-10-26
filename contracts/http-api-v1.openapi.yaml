@@ -1016,6 +1016,35 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { description: "slicer_handoff_limit: the account already holds ten open handoffs (ADR 0031)." }
         "503": { description: "slicer_handoff_misconfigured: targets or the public HTTPS base URL are invalid." }
+  /api/v1/models/search:
+    get:
+      operationId: searchModels
+      description: >-
+        Server-side model list (ADR 0032). Text matches name, slug,
+        description, author, and tag names case-insensitively and literally.
+        Filters combine with AND; removed models are never returned.
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: tag, in: query, schema: { type: string, format: uuid } }
+        - { name: kind, in: query, schema: { type: string, enum: [part, assembly, project] } }
+        - { name: sort, in: query, schema: { type: string, enum: [updated, name, created], default: updated } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 48 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200":
+          description: One page plus totals over the whole result set.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, limit, offset, total, fileLinkTotal]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Model" } }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  total: { type: integer, minimum: 0 }
+                  fileLinkTotal: { type: integer, minimum: 0, description: Linked files over all matching models. }
+        "400": { $ref: "#/components/responses/BadRequest" }
   /api/v1/slicer-targets:
     get:
       operationId: listSlicerTargets

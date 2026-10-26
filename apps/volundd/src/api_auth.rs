@@ -119,6 +119,7 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
     ),
     rule("PUT", "/api/v1/settings/{}", RoutePolicy::SettingsAdmin),
     rule("GET", "/api/v1/models", RoutePolicy::Authenticated),
+    rule("GET", "/api/v1/models/search", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/models/{}", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/models/{}/files", RoutePolicy::Authenticated),
     rule(

@@ -61,6 +61,7 @@ pub mod model_catalog;
 pub mod model_export;
 pub mod model_history;
 pub mod model_maintenance;
+pub mod model_search;
 pub mod operational_log;
 pub mod operational_policy;
 pub mod operations;

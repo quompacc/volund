@@ -7,7 +7,7 @@ use crate::api_models::{
 use crate::model_maintenance::ModelError;
 use crate::session::AuthenticatedSession;
 
-const MODEL_SELECT: &str = "SELECT model.public_id::text,model.slug,model.name,model.description,model.kind, \
+pub(crate) const MODEL_SELECT: &str = "SELECT model.public_id::text,model.slug,model.name,model.description,model.kind, \
      model.license_kind,model.license_value,author.name, \
      (SELECT source.public_id::text FROM volund.model_source_files primary_link \
        JOIN volund.source_files source ON source.id=primary_link.source_file_id \
@@ -423,7 +423,7 @@ fn ensure_revision(current: i64, expected: i64) -> Result<(), ModelError> {
     Ok(())
 }
 
-fn model_from_row(row: &sqlx::postgres::PgRow) -> ModelSummary {
+pub(crate) fn model_from_row(row: &sqlx::postgres::PgRow) -> ModelSummary {
     let thumbnail_kind: String = row.get(18);
     let source_id: Option<String> = row.get(19);
     let source_missing: Option<bool> = row.get(20);

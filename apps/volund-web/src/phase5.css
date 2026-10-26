@@ -238,3 +238,14 @@ main p:not(.eyebrow), main small, main label, main dt, main dd, main code, main 
   .assembly-inspector { grid-template-columns: 1fr; }
   .assembly-inspector > aside { border-top: 1px solid var(--border); border-left: 0; }
 }
+
+/* Server-side model list (ADR 0032) */
+.model-list-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin-bottom: 10px; }
+.model-list-filters label { display: grid; gap: 5px; min-width: 180px; }
+.model-list-filters input[type="search"] { min-width: min(320px, 100%); min-height: 40px; }
+.model-list-filters select { min-height: 40px; }
+.model-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 20px; }
+#model-grid-live[aria-busy="true"] { opacity: 0.6; }
+@media (max-width: 640px) {
+  .model-list-filters label { min-width: 100%; }
+}

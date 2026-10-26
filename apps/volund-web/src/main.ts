@@ -86,8 +86,8 @@ function mountApplication(session: CurrentSession): void {
     const total = roots.reduce((sum, root) => sum + root.fileCount - root.missingFileCount, 0);
     app.querySelector<HTMLElement>("#nav-file-count")!.textContent = String(total);
   });
-  void catalogApi.models().then((models) => {
-    app.querySelector<HTMLElement>("#nav-model-count")!.textContent = String(models.length);
+  void catalogApi.modelSearch("?limit=1").then((page) => {
+    app.querySelector<HTMLElement>("#nav-model-count")!.textContent = String(page.total);
   });
   render();
 }

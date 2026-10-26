@@ -190,6 +190,7 @@ fn protected_routes(state: ApiState) -> Router<ApiState> {
             get(crate::api_session::current).delete(crate::api_session::logout),
         )
         .route("/models", get(models).post(create_model))
+        .route("/models/search", get(crate::model_search::route))
         .route("/models/{model_id}", get(model).patch(update_model))
         .route("/lifecycle/preview", post(lifecycle_preview))
         .route("/lifecycle/plans/{plan_id}/apply", post(lifecycle_apply))

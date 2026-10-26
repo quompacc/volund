@@ -11,6 +11,7 @@ import { bindCatalogHistories } from "./catalog-history";
 import { mountAuthors } from "./authors";
 import { mountCollections, mountTags } from "./metadata-catalog";
 import { loadSlicerTargets, mountSlicerButtons } from "./slicer-launch";
+import { loadDashboardModels, mountModelList } from "./model-list-view";
 import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilterOptions, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
 import { PdfViewer, pdfViewerMarkup } from "./pdf-viewer";
 import { preferredModelFile, settingString } from "./preferences";
@@ -33,7 +34,7 @@ export function mountCatalogView(
   viewHost.className = "catalog-view-host";
   host.replaceChildren(viewHost);
   cleanup.push(() => viewHost.remove());
-  if (view === "dashboard" || view === "models") mountModelCatalog(viewHost, view);
+  if (view === "dashboard" || view === "models") mountModelCatalog(viewHost, view, cleanup);
   else if (view === "model") mountModel(viewHost, modelId, cleanup, canEdit, canManageMetadata, navigate);
   else if (view === "model-problems") mountModelProblems(viewHost, modelId, canEdit, navigate);
   else if (view === "imports") mountImports(viewHost, (id) => navigate("model", id));
@@ -51,51 +52,17 @@ export function mountCatalogView(
   return () => cleanup.forEach((dispose) => dispose());
 }
 
-function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models"): void {
+function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models", cleanup: Array<() => void>): void {
   const dashboard = view === "dashboard";
   host.innerHTML = `<div class="page-scroll"><header class="page-hero"><div><p class="eyebrow">${dashboard ? "ÜBERSICHT" : "KATALOG"}</p>
     <h1>${dashboard ? "Willkommen in VÖLUND" : "Alle Modelle"}</h1><p>Deine echten Modelle, Fertigungsdaten und Dokumente aus PostgreSQL.</p></div>
     <div class="hero-actions"><button class="secondary-action" data-navigate="raw">Rohdateien</button><button class="primary-action" data-navigate="imports"><span class="icon icon-plus" aria-hidden="true"></span>Modell importieren</button></div></header>
-    ${dashboard ? dashboardStats() : ""}<section class="content-section"><div class="section-heading"><div><p class="eyebrow">${dashboard ? "ZULETZT BEARBEITET" : "MODELLARCHIV"}</p><h2>${dashboard ? "Aktuelle Modelle" : "Alle Modelle"}</h2></div><div class="section-tools"><span>LIVE-KATALOG</span></div></div><div id="model-tag-filters" class="tag-facets" aria-label="Modelle nach Tag filtern"></div>
-    <div id="model-grid-live" class="model-grid"><p class="loading-copy">Modelle werden geladen …</p></div></section></div>`;
-  void Promise.all([catalogApi.models(), catalogApi.tags(false)]).then(
-    ([models, tags]) => {
-      const grid = host.querySelector<HTMLElement>("#model-grid-live");
-      if (!grid) return;
-      const facets = host.querySelector<HTMLElement>("#model-tag-filters")!;
-      let selectedTag = "";
-      const render = (): void => {
-        const visible = selectedTag ? models.filter((model) => model.tagIds.includes(selectedTag)) : models;
-        grid.innerHTML = visible.length > 0 ? visible.map(modelCardMarkup).join("")
-          : selectedTag
-            ? '<div class="empty-concept"><h2>Keine Modelle mit diesem Tag</h2><p>Filter zurücksetzen oder einen anderen Tag wählen.</p></div>'
-            : '<div class="empty-concept"><h2>Noch keine Modelle</h2><p>Importiere ein Modell, um deinen Katalog zu füllen. Indexierte Rohdateien sind nicht automatisch Modelle.</p></div>';
-        facets.querySelectorAll<HTMLButtonElement>("[data-tag-facet]").forEach((button) => {
-          button.setAttribute("aria-pressed", String(button.dataset.tagFacet === selectedTag));
-        });
-      };
-      const active = tags.items.filter((tag) => tag.active && tag.modelCount > 0);
-      facets.innerHTML = active.length === 0 ? "" : `<button type="button" class="tag-chip" data-tag-facet="" aria-pressed="true">Alle · ${models.length}</button>${active.map((tag) => `<button type="button" class="tag-chip" data-tag-facet="${escapeMarkup(tag.id)}" aria-pressed="false" title="${escapeMarkup(tag.name)}">${escapeMarkup(tag.name)} · ${tag.modelCount}</button>`).join("")}`;
-      facets.addEventListener("click", (event) => {
-        const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-tag-facet]");
-        if (!button) return;
-        selectedTag = button.dataset.tagFacet === selectedTag ? "" : button.dataset.tagFacet || "";
-        render();
-      });
-      grid.addEventListener("click", (event) => {
-        const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-model-tag-filter]");
-        if (!button?.dataset.modelTagFilter) return;
-        selectedTag = button.dataset.modelTagFilter;
-        render();
-      });
-      render();
-      const count = host.querySelector<HTMLElement>("#dashboard-model-count");
-      if (count) count.textContent = String(models.length);
-      const files = host.querySelector<HTMLElement>("#dashboard-model-files");
-      if (files) files.textContent = String(models.reduce((total, model) => total + model.fileCount, 0));
-    },
-    (error: Error) => showCatalogError(host, error.message),
-  );
+    ${dashboard ? dashboardStats() : ""}<section class="content-section"><div class="section-heading"><div><p class="eyebrow">${dashboard ? "ZULETZT BEARBEITET" : "MODELLARCHIV"}</p><h2>${dashboard ? "Aktuelle Modelle" : "Alle Modelle"}</h2></div><div class="section-tools"><span>LIVE-KATALOG</span></div></div>${dashboard ? "" : '<div id="model-tag-filters" class="tag-facets" aria-label="Modelle nach Tag filtern"></div>'}
+    ${dashboard ? "" : '<div id="model-list-toolbar"></div><p id="model-list-summary" class="form-message" aria-live="polite"></p>'}
+    <div id="model-grid-live" class="model-grid"><p class="loading-copy">Modelle werden geladen …</p></div>${dashboard ? "" : '<div id="model-list-pager"></div>'}</section></div>`;
+  const sources = { search: catalogApi.modelSearch, tags: () => catalogApi.tags(false) };
+  if (dashboard) void loadDashboardModels(host, sources).catch((error: Error) => showCatalogError(host, error.message));
+  else cleanup.push(mountModelList(host, sources));
   if (dashboard) {
     void catalogApi.roots().then((roots) => {
       const element = host.querySelector<HTMLElement>("#indexed-files");
