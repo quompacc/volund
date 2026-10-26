@@ -266,3 +266,13 @@ main p:not(.eyebrow), main small, main label, main dt, main dd, main code, main 
 @media (max-width: 640px) {
   .problem-overview-item { grid-template-columns: 1fr; }
 }
+
+/* Bulk model edit (ADR 0034) */
+.bulk-card { display: grid; gap: 6px; }
+.bulk-select { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); }
+.bulk-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 8px; background: var(--surface); }
+.bulk-bar > strong { flex-basis: 100%; }
+.bulk-bar label { display: grid; gap: 5px; min-width: 160px; }
+.bulk-bar .bulk-clear { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.bulk-actions { display: flex; gap: 10px; }
+.bulk-bar .form-message { flex-basis: 100%; margin: 0; }

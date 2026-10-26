@@ -134,6 +134,12 @@ fn payload(path: &str) -> Value {
     if path.ends_with("/thumbnail/regenerate") {
         return json!({"expectedRevision":1,"profile":"web"});
     }
+    if path == "/api/v1/models/bulk-edit" {
+        return json!({"models":[{"id":ID,"expectedRevision":1}],"changes":{"kind":"part"}});
+    }
+    if path == "/api/v1/saved-views" {
+        return json!({"name":"Role test","query":{}});
+    }
     if path.ends_with("/problems") {
         return json!({"expectedRevision":1,"keys":["test"],"status":"resolved"});
     }

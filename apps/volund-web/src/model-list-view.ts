@@ -1,3 +1,4 @@
+import { mountBulkEdit, selectableCardMarkup, type BulkEditSources } from "./model-bulk-edit";
 import { modelCardMarkup } from "./model-presentation";
 import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-types";
 import type { Page, TagSummary } from "./types";
@@ -21,6 +22,8 @@ const KINDS = ["part", "assembly", "project"];
 export interface ModelListSources {
   search: (query: string) => Promise<ModelSearchPage>;
   tags: () => Promise<Page<TagSummary>>;
+  /** Present only for accounts that may edit the catalog. */
+  bulk?: BulkEditSources;
   savedViews?: {
     list: () => Promise<SavedView[]>;
     create: (name: string, query: SavedViewQuery) => Promise<SavedView>;
@@ -118,8 +121,12 @@ export function tagFacetsMarkup(tags: TagSummary[], selected: string): string {
     `<button type="button" class="tag-chip" data-tag-facet="${escapeMarkup(tag.id)}" aria-pressed="${tag.id === selected}" title="${escapeMarkup(tag.name)}">${escapeMarkup(tag.name)} · ${tag.modelCount}</button>`).join("")}`;
 }
 
-export function modelResultsMarkup(page: ModelSearchPage, state: ModelListState): string {
-  if (page.items.length > 0) return page.items.map(modelCardMarkup).join("");
+export function modelResultsMarkup(
+  page: ModelSearchPage,
+  state: ModelListState,
+  wrap: (model: ModelSearchPage["items"][number], card: string) => string = (_model, card) => card,
+): string {
+  if (page.items.length > 0) return page.items.map((model) => wrap(model, modelCardMarkup(model))).join("");
   const filtered = state.q.trim() || state.tag || state.kind;
   return filtered
     ? '<div class="empty-concept"><h2>Keine passenden Modelle</h2><p>Suche oder Filter anpassen oder zurücksetzen.</p></div>'
@@ -138,6 +145,9 @@ export function mountModelList(host: HTMLElement, sources: ModelListSources, win
   const pager = host.querySelector<HTMLElement>("#model-list-pager")!;
   filters.innerHTML = `${modelListToolbarMarkup(state)}<div id="saved-views" class="saved-views"></div>`;
   let tags: TagSummary[] = [];
+  const bar = host.querySelector<HTMLElement>("#model-bulk-bar");
+  const bulk = sources.bulk && bar ? mountBulkEdit(grid, bar, sources.bulk, () => tags, () => void load(), win) : null;
+  const wrap = bulk ? (model: ModelSearchPage["items"][number], card: string) => selectableCardMarkup(model, card, bulk.selection.has(model.id)) : undefined;
   const renderFacets = () => { facets.innerHTML = tagFacetsMarkup(tags, state.tag); };
   const load = async (): Promise<void> => {
     const current = ++sequence;
@@ -151,7 +161,7 @@ export function mountModelList(host: HTMLElement, sources: ModelListSources, win
         await load();
         return;
       }
-      grid.innerHTML = modelResultsMarkup(page, state);
+      grid.innerHTML = modelResultsMarkup(page, state, wrap);
       summary.textContent = `${page.total} ${page.total === 1 ? "Modell" : "Modelle"}`;
       pager.innerHTML = pagerMarkup(state.page, page.total);
     } catch (error) {

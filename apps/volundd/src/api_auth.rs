@@ -178,6 +178,11 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
         RoutePolicy::CatalogWrite,
     ),
     rule("POST", "/api/v1/models", RoutePolicy::CatalogWrite),
+    rule(
+        "POST",
+        "/api/v1/models/bulk-edit",
+        RoutePolicy::CatalogWrite,
+    ),
     rule("PATCH", "/api/v1/models/{}", RoutePolicy::CatalogWrite),
     rule(
         "PUT",

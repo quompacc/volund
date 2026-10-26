@@ -35,7 +35,7 @@ export function mountCatalogView(
   viewHost.className = "catalog-view-host";
   host.replaceChildren(viewHost);
   cleanup.push(() => viewHost.remove());
-  if (view === "dashboard" || view === "models") mountModelCatalog(viewHost, view, cleanup);
+  if (view === "dashboard" || view === "models") mountModelCatalog(viewHost, view, cleanup, canEdit);
   else if (view === "model") mountModel(viewHost, modelId, cleanup, canEdit, canManageMetadata, navigate);
   else if (view === "model-problems") mountModelProblems(viewHost, modelId, canEdit, navigate);
   else if (view === "problems") cleanup.push(mountProblemOverview(viewHost, catalogApi.problems, { model: (id) => navigate("model-problems", id), library: () => navigate("administration") }));
@@ -54,17 +54,18 @@ export function mountCatalogView(
   return () => cleanup.forEach((dispose) => dispose());
 }
 
-function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models", cleanup: Array<() => void>): void {
+function mountModelCatalog(host: HTMLElement, view: "dashboard" | "models", cleanup: Array<() => void>, canEdit: boolean): void {
   const dashboard = view === "dashboard";
   host.innerHTML = `<div class="page-scroll"><header class="page-hero"><div><p class="eyebrow">${dashboard ? "ÜBERSICHT" : "KATALOG"}</p>
     <h1>${dashboard ? "Willkommen in VÖLUND" : "Alle Modelle"}</h1><p>Deine echten Modelle, Fertigungsdaten und Dokumente aus PostgreSQL.</p></div>
     <div class="hero-actions"><button class="secondary-action" data-navigate="raw">Rohdateien</button><button class="primary-action" data-navigate="imports"><span class="icon icon-plus" aria-hidden="true"></span>Modell importieren</button></div></header>
     ${dashboard ? dashboardStats() : ""}<section class="content-section"><div class="section-heading"><div><p class="eyebrow">${dashboard ? "ZULETZT BEARBEITET" : "MODELLARCHIV"}</p><h2>${dashboard ? "Aktuelle Modelle" : "Alle Modelle"}</h2></div><div class="section-tools"><span>LIVE-KATALOG</span></div></div>${dashboard ? "" : '<div id="model-tag-filters" class="tag-facets" aria-label="Modelle nach Tag filtern"></div>'}
-    ${dashboard ? "" : '<div id="model-list-toolbar"></div><p id="model-list-summary" class="form-message" aria-live="polite"></p>'}
+    ${dashboard ? "" : `<div id="model-list-toolbar"></div><p id="model-list-summary" class="form-message" aria-live="polite"></p>${canEdit ? '<div id="model-bulk-bar"></div>' : ""}`}
     <div id="model-grid-live" class="model-grid"><p class="loading-copy">Modelle werden geladen …</p></div>${dashboard ? "" : '<div id="model-list-pager"></div>'}</section></div>`;
   const sources = {
     search: catalogApi.modelSearch, tags: () => catalogApi.tags(false),
     savedViews: { list: catalogApi.savedViews, create: catalogApi.createSavedView, remove: catalogApi.removeSavedView },
+    bulk: canEdit ? { apply: catalogApi.bulkEditModels, collections: catalogApi.collections } : undefined,
   };
   if (dashboard) void loadDashboardModels(host, sources).catch((error: Error) => showCatalogError(host, error.message));
   else cleanup.push(mountModelList(host, sources));

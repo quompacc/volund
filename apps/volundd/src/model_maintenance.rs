@@ -298,7 +298,7 @@ fn validate_update(request: &UpdateModelRequest) -> Result<Option<String>, Model
     validate_license(&request.license_kind, request.license_value.as_deref())
 }
 
-fn validate_kind(kind: &str) -> Result<(), ModelError> {
+pub(crate) fn validate_kind(kind: &str) -> Result<(), ModelError> {
     if matches!(kind, "part" | "assembly" | "project") {
         Ok(())
     } else {
@@ -308,7 +308,10 @@ fn validate_kind(kind: &str) -> Result<(), ModelError> {
     }
 }
 
-fn validate_license(kind: &str, value: Option<&str>) -> Result<Option<String>, ModelError> {
+pub(crate) fn validate_license(
+    kind: &str,
+    value: Option<&str>,
+) -> Result<Option<String>, ModelError> {
     let value = value.map(str::trim).filter(|value| !value.is_empty());
     match (kind, value) {
         ("not-specified", None) => Ok(None),
@@ -383,7 +386,7 @@ fn allowed_primary_format(format: &str) -> bool {
     )
 }
 
-async fn persist_author(
+pub(crate) async fn persist_author(
     transaction: &mut Transaction<'_, Postgres>,
     actor: &AuthenticatedSession,
     name: Option<&str>,
@@ -451,7 +454,7 @@ async fn replace_collections(
     Ok(())
 }
 
-async fn audit(
+pub(crate) async fn audit(
     transaction: &mut Transaction<'_, Postgres>,
     actor: &AuthenticatedSession,
     action: &str,

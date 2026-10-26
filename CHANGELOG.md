@@ -10,6 +10,13 @@ until a signed release tag is created.
 
 ### Added
 
+- Massenbearbeitung nach ADR 0034: In der Modellliste lassen sich Modelle
+  seitenübergreifend auswählen und gemeinsam bearbeiten (Tag hinzufügen oder
+  entfernen, Sammlung hinzufügen oder entfernen, Art, Autor).
+  `POST /api/v1/models/bulk-edit` wendet die Änderung auf alle Modelle oder
+  auf keines an, prüft jede Revision und nennt bei Konflikten die betroffenen
+  Modelle; ab zehn Modellen ist eine Bestätigung nötig. Jedes Modell erhält
+  einen eigenen Verlaufseintrag mit gemeinsamer Batch-ID.
 - Zentrale Problemansicht nach ADR 0033: Die neue Ansicht „Probleme“ (mit
   Zähler in der Navigation) und `GET /api/v1/problems` bündeln
   Konvertierungs- und Baugruppenprobleme aller Modelle, fehlende oder nicht

@@ -198,3 +198,31 @@ describe("saved model list views", () => {
     await vi.waitFor(() => expect(element.textContent).toContain("already exists"));
   });
 });
+
+describe("bulk selection in the model list", () => {
+  it("offers checkboxes only with bulk sources and keeps the selection across pages", async () => {
+    const search = vi.fn().mockImplementation((query: string) =>
+      Promise.resolve(query.includes("offset=24") ? page(["Zeta"], 25, 24) : page(["Alpha"], 25)));
+    const element = host();
+    element.insertAdjacentHTML("beforeend", '<div id="model-bulk-bar"></div>');
+    mountModelList(element, {
+      search, tags: () => Promise.resolve({ items: [], limit: 100, offset: 0, total: 0 }),
+      bulk: { apply: vi.fn(), collections: () => Promise.resolve([]) },
+    });
+    await vi.waitFor(() => expect(element.querySelector('[data-bulk-model="id-Alpha"]')).not.toBeNull());
+    const box = element.querySelector<HTMLInputElement>('[data-bulk-model="id-Alpha"]')!;
+    box.checked = true;
+    box.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(element.querySelector("#model-bulk-bar")!.textContent).toContain("1 Modell ausgewählt");
+    element.querySelector<HTMLButtonElement>('[data-model-page="2"]')!.click();
+    await vi.waitFor(() => expect(element.querySelector('[data-bulk-model="id-Zeta"]')).not.toBeNull());
+    expect(element.querySelector("#model-bulk-bar")!.textContent).toContain("1 Modell ausgewählt");
+    element.querySelector<HTMLButtonElement>('[data-model-page="1"]')!.click();
+    await vi.waitFor(() => expect(element.querySelector<HTMLInputElement>('[data-bulk-model="id-Alpha"]')?.checked).toBe(true));
+
+    const readOnly = host();
+    mountModelList(readOnly, { search, tags: () => Promise.resolve({ items: [], limit: 100, offset: 0, total: 0 }) });
+    await vi.waitFor(() => expect(readOnly.textContent).toContain("Alpha"));
+    expect(readOnly.querySelector("[data-bulk-model]")).toBeNull();
+  });
+});

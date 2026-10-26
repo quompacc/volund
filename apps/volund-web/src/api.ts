@@ -3,6 +3,7 @@ import { checkSessionResponse } from "./session-expiry";
 import type { AuthorInput, AuthorSummary, CadFile, CatalogHistoryEvent, CatalogOptions, CollectionDetail, CollectionSummary, ConversionProfile, CurrentSession, Folder, Health, ImportCommit, ImportConfiguration, ImportDraft, ImportDraftLifecycle, ImportManifestEntry, ImportMetadataRequest, ImportReview, ImportStorage, ImportUpload, InvitationCreated, JobPage, LibraryPathValidation, LibraryRoot, LibraryScanResult, LifecycleAction, LifecyclePlan, LifecycleResult, ManagedJob, ManagedLibrary, ManagedUser, ModelComponent, ModelFile, ModelHistoryEvent, ModelSummary, MovedFile, OperationsHealth, OwnSession, Page, Preview, PreviewEnqueue, QuarantineSummary, RetentionPreview, RetentionResult, ScanSchedule, Setting, SetupStatus, SlicerHandoff, SlicerTarget, TagSummary, ThumbnailCandidate, UpdateModelFileRequest, UpdateModelRequest, UserPreferences } from "./types";
 import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-types";
 import type { ProblemOverviewPage } from "./problem-overview";
+import type { BulkEditRequest } from "./model-bulk-edit";
 
 export class ApiError extends Error {
   constructor(
@@ -146,6 +147,7 @@ export const catalogApi = {
   models: (): Promise<ModelSummary[]> => requestJson("/api/v1/models"),
   modelSearch: (query: string): Promise<ModelSearchPage> => requestJson(`/api/v1/models/search${query}`),
   problems: (query: string): Promise<ProblemOverviewPage> => requestJson(`/api/v1/problems${query}`),
+  bulkEditModels: (request: BulkEditRequest): Promise<ModelSummary[]> => postJson("/api/v1/models/bulk-edit", request),
   savedViews: (): Promise<SavedView[]> => requestJson("/api/v1/saved-views"),
   createSavedView: (name: string, query: SavedViewQuery): Promise<SavedView> =>
     postJson("/api/v1/saved-views", { name, query }),

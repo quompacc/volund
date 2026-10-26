@@ -1016,6 +1016,60 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { description: "slicer_handoff_limit: the account already holds ten open handoffs (ADR 0031)." }
         "503": { description: "slicer_handoff_misconfigured: targets or the public HTTPS base URL are invalid." }
+  /api/v1/models/bulk-edit:
+    post:
+      operationId: bulkEditModels
+      description: >-
+        Bulk model edit (ADR 0034). One change set applies to every listed model
+        or to none: each model must still be at its expected revision, otherwise
+        409 names the changed models. Fields left out stay unchanged; an empty
+        authorName clears the author. Ten or more models require the confirmation
+        "EDIT <count> MODELS". Each model gets its own audit event.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [models, changes]
+              properties:
+                models:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [id, expectedRevision]
+                    properties:
+                      id: { type: string, format: uuid }
+                      expectedRevision: { type: integer, minimum: 1 }
+                changes:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    addTagIds: { type: array, maxItems: 50, items: { type: string, format: uuid } }
+                    removeTagIds: { type: array, maxItems: 50, items: { type: string, format: uuid } }
+                    addCollectionIds: { type: array, maxItems: 50, items: { type: string, format: uuid } }
+                    removeCollectionIds: { type: array, maxItems: 50, items: { type: string, format: uuid } }
+                    kind: { type: string, enum: [part, assembly, project] }
+                    authorName: { type: string, maxLength: 160 }
+                    licenseKind: { type: string, enum: [not-specified, spdx, custom] }
+                    licenseValue: { type: string }
+                confirmation: { type: string }
+      responses:
+        "200":
+          description: The updated models in request order.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Model" } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { description: Catalog-write capability is required. }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
   /api/v1/models/search:
     get:
       operationId: searchModels

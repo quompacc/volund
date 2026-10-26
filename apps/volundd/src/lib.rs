@@ -57,6 +57,7 @@ pub mod library_admin;
 pub mod lifecycle;
 pub mod metadata_export;
 pub mod metadata_normalization;
+pub mod model_bulk;
 pub mod model_catalog;
 pub mod model_export;
 pub mod model_history;
