@@ -1215,6 +1215,56 @@ paths:
                       info: { type: integer }
                   truncated: { type: boolean }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/account/tokens:
+    get:
+      operationId: listApiTokens
+      description: The signed-in account's active API tokens, without secrets. Browser sessions only.
+      responses:
+        "200":
+          description: Active, unexpired tokens.
+          content:
+            application/json:
+              schema: { type: array, maxItems: 20, items: { $ref: "#/components/schemas/ApiToken" } }
+    post:
+      operationId: createApiToken
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, scope]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                scope: { type: string, enum: [read, catalog-write] }
+                expiresInDays: { type: integer, minimum: 1, maximum: 365, default: 90 }
+      responses:
+        "201":
+          description: The token, whose secret is returned only in this response.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ApiToken" }
+                  - type: object
+                    required: [token]
+                    properties:
+                      token: { type: string, pattern: "^vlnd_[0-9a-f]{64}$" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { description: The account's role does not allow catalog-write. }
+        "429": { description: "api_token_limit: at most 20 active tokens per account." }
+  /api/v1/account/tokens/{tokenId}:
+    delete:
+      operationId: revokeApiToken
+      parameters:
+        - { name: tokenId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "204": { description: Revoked; the token stops working immediately. }
+        "404": { description: No such active token of this account. }
   /api/v1/saved-views:
     get:
       operationId: listSavedViews
@@ -2173,6 +2223,14 @@ components:
       type: apiKey
       in: cookie
       name: volund_session
+    apiToken:
+      type: http
+      scheme: bearer
+      description: >-
+        Personal API token (ADR 0037), `Authorization: Bearer vlnd_<64 hex>`.
+        Scope read or catalog-write, never beyond the owner's role, never for
+        account, session, token, user, setup, or invitation routes. Bearer
+        requests need no CSRF token.
   parameters:
     ModelId:
       name: modelId
@@ -3282,6 +3340,17 @@ components:
         targetId: { type: string, format: uuid }
         outcome: { type: string, enum: [applied] }
         revision: { type: integer, minimum: 1 }
+    ApiToken:
+      type: object
+      required: [id, name, prefix, scope, createdAtUnixMs, expiresAtUnixMs, lastUsedAtUnixMs]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        prefix: { type: string, pattern: "^[0-9a-f]{8}$", description: The first eight hex digits of the secret. }
+        scope: { type: string, enum: [read, catalog-write] }
+        createdAtUnixMs: { type: integer }
+        expiresAtUnixMs: { type: integer }
+        lastUsedAtUnixMs: { type: [integer, "null"] }
     SavedViewQuery:
       type: object
       additionalProperties: false

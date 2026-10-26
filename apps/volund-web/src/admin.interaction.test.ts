@@ -57,6 +57,7 @@ describe("administration interactions", () => {
     host = document.createElement("main");
     document.body.replaceChildren(host);
     vi.spyOn(identityApi, "sessions").mockResolvedValue([session]);
+    vi.spyOn(identityApi, "apiTokens").mockResolvedValue([]);
     vi.spyOn(identityApi, "settings").mockResolvedValue([setting]);
     vi.spyOn(identityApi, "preferences").mockResolvedValue({ previewAutoLoad: "selected", background: "dark",
       gridVisible: true, contrast: "balanced", renderStyle: "solid", problemMinimumSeverity: "warning", revision: 0 });

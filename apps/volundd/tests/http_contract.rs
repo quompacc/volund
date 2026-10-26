@@ -11,6 +11,7 @@ const HISTORY_ROUTER_SOURCE: &str = include_str!("../src/api_history.rs");
 const THUMBNAIL_ROUTER_SOURCE: &str = include_str!("../src/api_thumbnail.rs");
 const EXPORT_ROUTER_SOURCE: &str = include_str!("../src/api_export.rs");
 const SAVED_VIEWS_ROUTER_SOURCE: &str = include_str!("../src/saved_views.rs");
+const TOKEN_ROUTER_SOURCE: &str = include_str!("../src/api_tokens.rs");
 const PREFERENCES_ROUTER_SOURCE: &str = include_str!("../src/api_preferences.rs");
 const PROBLEMS_ROUTER_SOURCE: &str = include_str!("../src/api_problems.rs");
 const PRIMARY_ROUTER_SOURCE: &str = include_str!("../src/api_primary.rs");
@@ -48,6 +49,7 @@ fn router_paths() -> BTreeSet<String> {
         .chain(THUMBNAIL_ROUTER_SOURCE.lines())
         .chain(EXPORT_ROUTER_SOURCE.lines())
         .chain(SAVED_VIEWS_ROUTER_SOURCE.lines())
+        .chain(TOKEN_ROUTER_SOURCE.lines())
         .chain(PREFERENCES_ROUTER_SOURCE.lines())
         .chain(PROBLEMS_ROUTER_SOURCE.lines())
         .chain(PRIMARY_ROUTER_SOURCE.lines())

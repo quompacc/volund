@@ -1,4 +1,5 @@
 import { catalogApi, identityApi, jobsApi, operationsApi, policyApi } from "./api";
+import { apiTokenPanel, bindApiTokens } from "./api-tokens-view";
 import { confirmExact } from "./confirmation";
 import { bindJobActions, jobPanel } from "./jobs-view";
 import { bindLibraryActions, libraryPanel } from "./libraries";
@@ -23,7 +24,7 @@ export function mountAdministration(host: HTMLElement, actor: CurrentSession): (
     if (!content) return;
     try {
       const canAdminister = actor.role === "owner" || actor.role === "administrator";
-      let [sessions, settings, preferences, users, operations, jobs, profiles, schedules, retention, quarantines] = await Promise.all([
+      let [sessions, settings, preferences, users, operations, jobs, profiles, schedules, retention, quarantines, tokens] = await Promise.all([
         identityApi.sessions(),
         identityApi.settings(),
         identityApi.preferences(),
@@ -34,6 +35,7 @@ export function mountAdministration(host: HTMLElement, actor: CurrentSession): (
         canAdminister ? policyApi.schedules() : Promise.resolve([]),
         canAdminister ? policyApi.retentionPreview() : Promise.resolve(null),
         canAdminister ? catalogQuarantines(quarantineOffset) : Promise.resolve(null),
+        identityApi.apiTokens().catch(() => []),
       ]);
       if (disposed) return;
       if (jobs && jobs.items.length === 0 && jobs.offset > 0 && jobs.offset >= jobs.total) {
@@ -50,7 +52,7 @@ export function mountAdministration(host: HTMLElement, actor: CurrentSession): (
       const locale = settingString(settings, "instance.locale", "de-DE");
       const timeZone = settingString(settings, "instance.timeZone", "Europe/Berlin");
       const areas = [
-        { id: "account", label: "Konto", content: `${accountPanel(actor)}${preferencesPanel(preferences)}${sessionPanel(sessions, locale, timeZone)}` },
+        { id: "account", label: "Konto", content: `${accountPanel(actor)}${preferencesPanel(preferences)}${sessionPanel(sessions, locale, timeZone)}${apiTokenPanel(tokens, actor.role !== "viewer", locale)}` },
         ...(canAdminister ? [
           { id: "operations", label: "Betrieb", content: `${operations ? operationsPanel(operations, locale, timeZone) : ""}${jobs ? jobPanel(jobs, jobFilters, locale, timeZone) : ""}` },
           { id: "storage", label: "Speicher", content: `${operations ? libraryPanel(operations.libraries) : ""}${quarantinePanel(quarantines, actor)}` },
@@ -62,6 +64,8 @@ export function mountAdministration(host: HTMLElement, actor: CurrentSession): (
       content.innerHTML = `<div id="admin-message" class="admin-message" role="status" aria-live="polite"></div>${adminAreaMarkup(areas, activeArea)}`;
       bindAdminAreas(content, (area) => { activeArea = area; });
       bindActions(content, refresh);
+      const tokenSection = content.querySelector<HTMLElement>("#api-tokens");
+      if (tokenSection) bindApiTokens(tokenSection, content, { list: identityApi.apiTokens, create: identityApi.createApiToken, revoke: identityApi.revokeApiToken }, refresh, (text) => showMessage(content, text));
       if (canAdminister) bindOperationsActions(content);
       if (canAdminister) bindLibraryActions(content, refresh);
       if (canAdminister) bindJobActions(content, (filters) => { jobFilters = filters; }, refresh);

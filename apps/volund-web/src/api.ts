@@ -5,6 +5,7 @@ import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-ty
 import type { ProblemOverviewPage } from "./problem-overview";
 import type { BulkEditRequest } from "./model-bulk-edit";
 import type { DryRunReport } from "./library-onboarding";
+import type { ApiToken, CreatedApiToken } from "./api-tokens-view";
 
 export class ApiError extends Error {
   constructor(
@@ -268,6 +269,12 @@ export const catalogApi = {
 };
 
 export const identityApi = {
+  apiTokens: (): Promise<ApiToken[]> => requestJson("/api/v1/account/tokens"),
+  createApiToken: (name: string, scope: ApiToken["scope"], expiresInDays: number): Promise<CreatedApiToken> =>
+    postJson("/api/v1/account/tokens", { name, scope, expiresInDays }),
+  revokeApiToken: async (id: string): Promise<void> => {
+    await mutationJson(`/api/v1/account/tokens/${encodeURIComponent(id)}`, "DELETE");
+  },
   setupStatus: (): Promise<SetupStatus> => requestJson("/api/v1/setup"),
   setupOwner: (token: string, body: { email: string; displayName: string; password: string }): Promise<ManagedUser> =>
     mutationJson("/api/v1/setup/owner", "POST", body, { "X-Volund-Setup-Token": token }),

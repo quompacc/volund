@@ -178,6 +178,7 @@ fn protected_routes(state: ApiState) -> Router<ApiState> {
         .merge(crate::api_policy::routes())
         .merge(crate::api_jobs::routes())
         .merge(crate::saved_views::routes())
+        .merge(crate::api_tokens::routes())
         .merge(crate::api_metadata::routes())
         .merge(crate::api_history::routes())
         .merge(crate::api_thumbnail::routes())

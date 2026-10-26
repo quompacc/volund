@@ -1,3 +1,4 @@
+use crate::api_tokens::TokenScope;
 use std::net::IpAddr;
 
 use rand_core::{OsRng, RngCore};
@@ -92,6 +93,8 @@ pub struct AuthenticatedSession {
     pub display_name: String,
     pub role: String,
     pub must_change_password: bool,
+    /// Set when the request authenticated with an API token (ADR 0037).
+    pub token_scope: Option<TokenScope>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -115,27 +118,65 @@ impl AuthenticatedSession {
 
     #[must_use]
     pub fn has_capability(&self, capability: Capability) -> bool {
-        matches!(
-            (self.role.as_str(), capability),
-            (
-                "owner" | "administrator" | "editor" | "viewer",
-                Capability::CatalogRead
-            ) | (
-                "owner" | "administrator" | "editor",
-                Capability::CatalogWrite
-            ) | (
-                "owner" | "administrator",
-                Capability::UserAdmin
-                    | Capability::SettingsAdmin
-                    | Capability::LibraryAdmin
-                    | Capability::MetadataAdmin
+        let scoped = match self.token_scope {
+            None => true,
+            Some(TokenScope::Read) => capability == Capability::CatalogRead,
+            Some(TokenScope::CatalogWrite) => {
+                matches!(
+                    capability,
+                    Capability::CatalogRead | Capability::CatalogWrite
+                )
+            }
+        };
+        scoped
+            && matches!(
+                (self.role.as_str(), capability),
+                (
+                    "owner" | "administrator" | "editor" | "viewer",
+                    Capability::CatalogRead
+                ) | (
+                    "owner" | "administrator" | "editor",
+                    Capability::CatalogWrite
+                ) | (
+                    "owner" | "administrator",
+                    Capability::UserAdmin
+                        | Capability::SettingsAdmin
+                        | Capability::LibraryAdmin
+                        | Capability::MetadataAdmin
+                )
             )
-        )
     }
 
     #[must_use]
     pub(crate) fn database_user_id(&self) -> i64 {
         self.database_user_id
+    }
+
+    /// A request authenticated with an API token rather than a browser session.
+    #[must_use]
+    pub fn via_token(&self) -> bool {
+        self.token_scope.is_some()
+    }
+
+    /// The identity behind a validated API token; it carries no CSRF secret.
+    pub(crate) fn from_token(
+        token_id: String,
+        database_user_id: i64,
+        account: (String, String, String, String),
+        scope: TokenScope,
+    ) -> Self {
+        let (user_id, email, display_name, role) = account;
+        Self {
+            database_user_id,
+            csrf_digest: String::new(),
+            session_id: token_id,
+            user_id,
+            email,
+            display_name,
+            role,
+            must_change_password: false,
+            token_scope: Some(scope),
+        }
     }
 }
 
@@ -252,6 +293,7 @@ pub async fn authenticate(
         display_name: row.get(5),
         role: row.get(6),
         must_change_password: row.get(7),
+        token_scope: None,
     })
 }
 
@@ -533,7 +575,7 @@ fn random_token() -> String {
     hex::encode(bytes)
 }
 
-fn token_digest(token: &str) -> String {
+pub(crate) fn token_digest(token: &str) -> String {
     hex::encode(Sha256::digest(token.as_bytes()))
 }
 

@@ -19,6 +19,7 @@ mod api_query;
 mod api_session;
 mod api_settings;
 mod api_thumbnail;
+pub mod api_tokens;
 mod api_user;
 pub mod archive_intake;
 mod artifact_stream;

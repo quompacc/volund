@@ -112,6 +112,13 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
     rule("GET", "/api/v1/models", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/models/search", RoutePolicy::Authenticated),
     rule("GET", "/api/v1/saved-views", RoutePolicy::Authenticated),
+    rule("GET", "/api/v1/account/tokens", RoutePolicy::Authenticated),
+    rule("POST", "/api/v1/account/tokens", RoutePolicy::Authenticated),
+    rule(
+        "DELETE",
+        "/api/v1/account/tokens/{}",
+        RoutePolicy::Authenticated,
+    ),
     rule("GET", "/api/v1/problems", RoutePolicy::Authenticated),
     rule("POST", "/api/v1/saved-views", RoutePolicy::Authenticated),
     rule(
@@ -345,5 +352,52 @@ const fn rule(method: &'static str, path: &'static str, policy: RoutePolicy) -> 
         method,
         path,
         policy,
+    }
+}
+
+/// The declared policy of a concrete request path; `{}` matches one segment.
+#[must_use]
+pub fn policy_for(method: &str, path: &str) -> Option<RoutePolicy> {
+    let segments: Vec<&str> = path.trim_end_matches('/').split('/').collect();
+    ROUTE_POLICIES.iter().find_map(|rule| {
+        let pattern: Vec<&str> = rule.path.split('/').collect();
+        let matches = rule.method == method
+            && pattern.len() == segments.len()
+            && pattern.iter().zip(&segments).all(|(expected, actual)| {
+                *expected == *actual || (*expected == "{}" && !actual.is_empty())
+            });
+        matches.then_some(rule.policy)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RoutePolicy, policy_for};
+
+    #[test]
+    fn concrete_paths_resolve_to_their_declared_policy() {
+        assert_eq!(
+            policy_for("GET", "/api/v1/models"),
+            Some(RoutePolicy::Authenticated)
+        );
+        assert_eq!(
+            policy_for("POST", "/api/v1/models"),
+            Some(RoutePolicy::CatalogWrite)
+        );
+        assert_eq!(
+            policy_for("POST", "/api/v1/jobs/scan/7f0c/cancel"),
+            policy_for("POST", "/api/v1/jobs/conversion/abc/cancel")
+        );
+        assert_eq!(
+            policy_for("GET", "/api/v1/models/"),
+            Some(RoutePolicy::Authenticated)
+        );
+        assert_eq!(
+            policy_for("GET", "/api/v1/models//files"),
+            None,
+            "an empty segment matches no ID"
+        );
+        assert_eq!(policy_for("PATCH", "/api/v1/health"), None);
+        assert_eq!(policy_for("GET", "/api/v1/not-a-route"), None);
     }
 }

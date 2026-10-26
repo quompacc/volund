@@ -19,3 +19,19 @@ usability aid.
 Model history is model-scoped business evidence. It never returns global denied
 requests, session events, client addresses, request IDs, absolute paths, headers,
 environment values, or submitted confirmation strings.
+
+## API tokens
+
+Personal API tokens ([ADR 0037](../adr/0037-personal-api-tokens.md)) act as
+their owner, limited by their scope and the owner's current role:
+
+| Token scope | Allowed route policies |
+| --- | --- |
+| `read` | Authenticated (catalog read) |
+| `catalog-write` | Authenticated, CatalogWrite |
+
+No token reaches UserAdmin, SettingsAdmin, LibraryAdmin, or MetadataAdmin
+routes, undeclared or public routes, or the account, session(s), users, setup,
+and invitation areas. The middleware checks this centrally before the handler
+runs. Bearer requests skip CSRF and origin checks, because they carry no
+ambient cookie.

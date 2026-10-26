@@ -41,12 +41,32 @@ pub(crate) async fn require_session(
     if !actor.has_capability(Capability::CatalogRead) {
         return Err(ApiError::Forbidden);
     }
+    // Inside the nested API router the URI lacks `/api/v1`; policies use full paths.
+    let full_path = request
+        .extensions()
+        .get::<axum::extract::OriginalUri>()
+        .map_or_else(
+            || request.uri().path().to_owned(),
+            |uri| uri.path().to_owned(),
+        );
+    if actor.via_token() && !token_route_allowed(&actor, request.method(), &full_path) {
+        crate::security_audit::denied(
+            &state.pool,
+            &actor,
+            "request.token",
+            "http-route",
+            "token_route_forbidden",
+        )
+        .await;
+        return Err(ApiError::Forbidden);
+    }
     if actor.must_change_password
         && !allows_required_password_change(request.method(), request.uri().path())
     {
         return Err(ApiError::Forbidden);
     }
-    if is_mutation(request.method()) {
+    // Bearer tokens are not ambient credentials, so CSRF and origin checks do not apply.
+    if is_mutation(request.method()) && !actor.via_token() {
         if let Err(error) = verify_browser_origin(request.headers(), state.session.secure_cookies())
         {
             crate::security_audit::denied(
@@ -139,6 +159,35 @@ fn require_capability(
     } else {
         Err(ApiError::Forbidden)
     }
+}
+
+/// Account, session, token, user, and setup management stay browser-only.
+const TOKEN_FORBIDDEN: &[&str] = &[
+    "/api/v1/account",
+    "/api/v1/session",
+    "/api/v1/sessions",
+    "/api/v1/users",
+    "/api/v1/setup",
+    "/api/v1/invitations",
+];
+
+/// Tokens are deny-by-default: the route must be declared, outside the
+/// browser-only management areas, and allowed by the token's capabilities.
+fn token_route_allowed(actor: &AuthenticatedSession, method: &Method, path: &str) -> bool {
+    let forbidden = TOKEN_FORBIDDEN.iter().any(|prefix| {
+        path.strip_prefix(prefix)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with('/'))
+    });
+    let required = match crate::route_policy::policy_for(method.as_str(), path) {
+        Some(RoutePolicy::Authenticated) => Capability::CatalogRead,
+        Some(RoutePolicy::CatalogWrite) => Capability::CatalogWrite,
+        Some(RoutePolicy::UserAdmin) => Capability::UserAdmin,
+        Some(RoutePolicy::SettingsAdmin) => Capability::SettingsAdmin,
+        Some(RoutePolicy::LibraryAdmin) => Capability::LibraryAdmin,
+        Some(RoutePolicy::MetadataAdmin) => Capability::MetadataAdmin,
+        Some(RoutePolicy::Public) | None => return false,
+    };
+    !forbidden && actor.has_capability(required)
 }
 
 fn is_mutation(method: &Method) -> bool {

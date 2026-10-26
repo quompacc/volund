@@ -10,6 +10,13 @@ until a signed release tag is created.
 
 ### Added
 
+- Persönliche API-Tokens nach ADR 0037: Unter Konto → API-Tokens lassen sich
+  Tokens für Skripte erzeugen (`Authorization: Bearer vlnd_…`), einmalig
+  anzeigen, kopieren und widerrufen. Gespeichert wird nur ein SHA-256-Hash;
+  Tokens laufen nach höchstens 365 Tagen ab, haben den Umfang „Nur lesen“
+  oder „Katalog bearbeiten“, reichen nie über die Rolle hinaus und können
+  Konten, Sitzungen und Tokens nicht verwalten. Für Token-Anfragen gilt die
+  Routen-Policy zentral und ablehnend bei fehlender Deklaration.
 - WebGL-Fallback nach ADR 0036: Die Oberfläche erkennt, ob 3D auf der GPU,
   nur in Software oder gar nicht gerendert werden kann. Ohne WebGL erscheint
   statt eines Viewer-Fehlers ein Hinweis, Struktur, Dateiangaben und Download

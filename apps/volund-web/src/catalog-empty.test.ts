@@ -10,6 +10,8 @@ it.each(["dashboard", "models"] as const)("explains an empty %s without inventin
   vi.spyOn(catalogApi, "modelSearch").mockResolvedValue({ items: [], limit: 24, offset: 0, total: 0, fileLinkTotal: 0 });
   vi.spyOn(catalogApi, "tags").mockResolvedValue({ items: [], limit: 100, offset: 0, total: 0 });
   vi.spyOn(catalogApi, "roots").mockResolvedValue([]);
+  vi.spyOn(catalogApi, "savedViews").mockResolvedValue([]);
+  vi.spyOn(catalogApi, "collections").mockResolvedValue([]);
   const host = document.createElement("div");
   const dispose = mountCatalogView(host, view, vi.fn(), null, true, true);
   await vi.waitFor(() => expect(host.textContent).toContain("Noch keine Modelle"));

@@ -122,6 +122,17 @@ pub(crate) async fn authenticate_headers(
     state: &ApiState,
     headers: &HeaderMap,
 ) -> Result<session::AuthenticatedSession, ApiError> {
+    if let Some(authorization) = headers.get(header::AUTHORIZATION) {
+        // A request that presents a bearer token is judged by it alone (ADR 0037).
+        let token = authorization
+            .to_str()
+            .ok()
+            .and_then(crate::api_tokens::bearer)
+            .ok_or(ApiError::Session(SessionError::InvalidSession))?;
+        return crate::api_tokens::authenticate(&state.pool, token)
+            .await
+            .map_err(ApiError::Session);
+    }
     let token = request_cookie(headers, session_cookie_name(state.session.secure_cookies()))
         .ok_or(ApiError::Session(SessionError::InvalidSession))?;
     let policy = crate::settings::session_policy(&state.pool)

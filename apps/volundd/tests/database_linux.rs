@@ -77,6 +77,7 @@ async fn migration_builds_the_expected_schema_and_is_idempotent() {
     assert_eq!(
         tables,
         [
+            "api_tokens",
             "authors",
             "collection_models",
             "collections",
