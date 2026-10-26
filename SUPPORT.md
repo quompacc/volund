@@ -42,8 +42,12 @@ catalog does not guarantee a generated 3D preview.
   re-import of a metadata export into a new instance are not implemented.
 - The keyboard, offline, timeout, and stale-response browser acceptance is
   incomplete; the automated Firefox and Chromium responsive matrices pass.
-- Large-assembly performance around the 1,500-mesh target and repeated viewer
-  resource release have not completed their final acceptance measurements.
+- Large-assembly viewer acceptance passed on 2026-10-26 in Edge and Firefox on a
+  desktop GPU: 1,500 meshes up to 1.5 million triangles load in well under a
+  second, orbit at display rate, and release every renderer resource across ten
+  cycles (docs/benchmarks/large-assembly-viewer.md). Without a GPU (software
+  rendering), previews of that size are not interactive; a WebGL fallback is
+  still open.
 - Worker leases, immediate recovery of lost jobs, orderly SIGTERM stop,
   lock-aware conversion timeouts, and orphaned-directory cleanup are
   implemented and covered by Linux integration tests with real worker

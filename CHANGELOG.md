@@ -10,6 +10,13 @@ until a signed release tag is created.
 
 ### Added
 
+- Abnahme der Viewer-Leistung für große Baugruppen
+  (`apps/volund-web/tests/viewer-performance.mjs`): echte Browser (Edge über
+  CDP, Firefox über WebDriver BiDi) messen Laden, Freigabe, Bildzeiten beim
+  Drehen, Auswahl, Isolieren und Strukturbaum für 1.500 Meshes bis
+  1,5 Millionen Dreiecke gegen feste Budgets. Ergebnisse in
+  `docs/benchmarks/large-assembly-viewer.md`; ein optionaler
+  Software-Rendering-Lauf zeigt die Grenze ohne GPU.
 - Massenbearbeitung nach ADR 0034: In der Modellliste lassen sich Modelle
   seitenübergreifend auswählen und gemeinsam bearbeiten (Tag hinzufügen oder
   entfernen, Sammlung hinzufügen oder entfernen, Art, Autor).

@@ -9,6 +9,7 @@
     "dev": "vite",
     "test": "vitest run",
     "test:firefox-responsive": "node tests/firefox-responsive.mjs",
+    "test:viewer-performance": "node tests/viewer-performance.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

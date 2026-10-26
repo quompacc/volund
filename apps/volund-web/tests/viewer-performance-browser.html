@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>VÖLUND – Leistungsprüfung große Baugruppe</title>
+<link rel="stylesheet" href="../src/styles.css">
+<link rel="stylesheet" href="../src/phase5.css">
+<style>
+  body{padding:24px}main{max-width:1180px;margin:auto}canvas{width:1024px;height:640px;display:block}
+  pre{white-space:pre-wrap}#structure{max-height:320px;overflow:auto}
+</style>
+<main>
+  <h1>Leistungsprüfung: 1.500 Meshes</h1>
+  <p>Produktiver CadViewer und Strukturbaum mit synthetischer Baugruppe; keine API und keine Produktionsdaten.
+    <code>?unique=1</code> erzeugt 1.500 eigenständige Geometrien statt wiederholter Instanzen.</p>
+  <p id="status" role="status">Fixture wird erzeugt …</p>
+  <canvas aria-label="1.500-Mesh-Testbaugruppe"></canvas>
+  <section id="structure"></section>
+  <pre id="metrics" aria-label="Messwerte"></pre>
+</main>
+<script type="module">
+import * as THREE from "three";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+import { CadViewer } from "../src/viewer.ts";
+import { assemblyTreeMarkup, mountAssemblyTree, parseAssemblyManifest } from "../src/assembly-tree.ts";
+
+// Budgets of the large-assembly acceptance (docs/benchmarks/large-assembly-viewer.md).
+const budgets = {
+  meshes: 1500, cycles: 10, loadMs: 10000, frameP95Ms: 50, selectMs: 50,
+  isolateMs: 150, visibilityMs: 50, treeMountMs: 750, treeSelectMs: 100, heapGrowthBytes: 8 * 1024 * 1024,
+};
+const query = new URLSearchParams(location.search);
+const unique = query.get("unique") === "1";
+// detail=high: ~1,000 triangles per part, ~1.5 million in total, like the
+// adaptive web preview of the 1,689-instance VORON 2.4 benchmark assembly.
+const high = query.get("detail") === "high";
+const status = document.querySelector("#status");
+const metrics = document.querySelector("#metrics");
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+const percentile = (values, share) => {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.min(sorted.length - 1, Math.floor(share * sorted.length))];
+};
+const heap = () => performance.memory?.usedJSHeapSize ?? null;
+const timed = async (action) => { const started = performance.now(); await action(); await nextFrame(); return performance.now() - started; };
+
+try {
+  const source = new THREE.Group();
+  source.name = "Large Assembly";
+  const shared = new THREE.BoxGeometry(0.72, 0.72, 0.72);
+  const material = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.7 });
+  for (let index = 0; index < budgets.meshes; index += 1) {
+    const segments = high ? 248 + (index % 5) : 12 + (index % 5);
+    const geometry = unique ? new THREE.CylinderGeometry(0.2 + (index % 7) * 0.03, 0.36, 0.72, segments) : shared;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = `Teil ${index}`;
+    mesh.position.set(index % 50, Math.floor(index / 50) % 10, Math.floor(index / 500) * 2);
+    source.add(mesh);
+  }
+  const glb = await new GLTFExporter().parseAsync(source, { binary: true });
+  source.traverse((object) => { if (object.isMesh) object.geometry.dispose(); });
+  material.dispose();
+  const url = URL.createObjectURL(new Blob([glb]));
+
+  const canvas = document.querySelector("canvas");
+  const viewer = new CadViewer(canvas);
+  const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+  const debug = gl?.getExtension("WEBGL_debug_renderer_info");
+  const renderer = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl?.getParameter(gl.RENDERER) ?? "unknown";
+  await nextFrame();
+  const firstLoadMs = await timed(() => viewer.load(url));
+  viewer.clear();
+  await nextFrame();
+  const baseline = viewer.resourceSnapshot();
+  const heapSamples = [];
+  const loads = [];
+  let residualPeak = { geometries: baseline.geometries, textures: baseline.textures, modelMeshes: 0 };
+  for (let cycle = 0; cycle < budgets.cycles; cycle += 1) {
+    loads.push(await timed(() => viewer.load(url)));
+    viewer.clear();
+    await nextFrame();
+    globalThis.gc?.();
+    await nextFrame();
+    heapSamples.push(heap());
+    const residual = viewer.resourceSnapshot();
+    residualPeak = {
+      geometries: Math.max(residualPeak.geometries, residual.geometries),
+      textures: Math.max(residualPeak.textures, residual.textures),
+      modelMeshes: Math.max(residualPeak.modelMeshes, residual.modelMeshes),
+    };
+  }
+  // Steady state: growth from the third cycle on, after forced collections, is a leak.
+  const steady = heapSamples.slice(2).filter((value) => value !== null);
+  const heapGrowthBytes = steady.length > 1 ? steady.at(-1) - steady[0] : null;
+  loads.push(await timed(() => viewer.load(url)));
+  const active = viewer.resourceSnapshot();
+
+  // Orbit: move the camera around its target every frame and record frame intervals.
+  const camera = viewer.camera;
+  const controls = viewer.controls;
+  const offset = camera.position.clone().sub(controls.target);
+  const frames = [];
+  let previous = performance.now();
+  for (let step = 0; step < 180; step += 1) {
+    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 90);
+    camera.position.copy(controls.target).add(offset);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const now = performance.now();
+    frames.push(now - previous);
+    previous = now;
+  }
+  const afterOrbit = viewer.resourceSnapshot();
+
+  const selectMs = [];
+  for (const index of [0, 749, 1499]) selectMs.push(await timed(() => viewer.selectObject(`Teil ${index}`)));
+  const isolateMs = await timed(() => viewer.isolateObject("Teil 1499"));
+  const resetMs = await timed(() => viewer.resetVisibility());
+  const visibilityMs = await timed(() => viewer.setObjectVisible("Teil 10", false));
+  viewer.setObjectVisible("Teil 10", true);
+
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const definitions = Array.from({ length: budgets.meshes }, (_, index) => ({ id: `d-${index}`, name: `Teil ${index}`, kind: "part", color: null }));
+  const manifest = parseAssemblyManifest({
+    contractVersion: 1, transformConvention: "row-major, parent-local", colorSpace: "sRGB",
+    definitions: [{ id: "d-root", name: "Large Assembly", kind: "assembly", color: null }, ...definitions],
+    roots: [{ id: "root", name: "Large Assembly", kind: "assembly", definition: "d-root", transform: identity, color: null,
+      children: definitions.map((definition, index) => ({ id: `n-${index}`, name: definition.name, kind: "part-instance",
+        definition: definition.id, transform: identity, color: null, children: [] })) }],
+  });
+  const host = document.querySelector("#structure");
+  const treeMountMs = await timed(() => {
+    host.innerHTML = assemblyTreeMarkup(manifest, "large.step");
+    mountAssemblyTree(host, manifest, {
+      select: (name) => viewer.selectObject(name), visible: (name, visible) => viewer.setObjectVisible(name, visible),
+      isolate: (name) => viewer.isolateObject(name), reset: () => viewer.resetVisibility(),
+    });
+  });
+  const treeSelectMs = await timed(() => host.querySelector('[data-assembly-id="n-1200"]').click());
+
+  viewer.clear();
+  URL.revokeObjectURL(url);
+  const result = {
+    variant: high ? "unique-geometry-1.5m-triangles" : unique ? "unique-geometry" : "repeated-instances", renderer, userAgent: navigator.userAgent,
+    glbBytes: glb.byteLength, firstLoadMs, worstLoadMs: Math.max(...loads), medianLoadMs: percentile(loads, 0.5),
+    frameP50Ms: percentile(frames, 0.5), frameP95Ms: percentile(frames, 0.95), frameMaxMs: Math.max(...frames),
+    renderCalls: afterOrbit.renderCalls, triangles: afterOrbit.triangles,
+    selectMs: Math.max(...selectMs), isolateMs, resetMs, visibilityMs, treeMountMs, treeSelectMs,
+    heapGrowthBytes, heapSamples, gcAvailable: typeof globalThis.gc === "function",
+    baseline, active, residualPeak, budgets,
+  };
+  const failures = [];
+  const check = (passed, label) => { if (!passed) failures.push(label); };
+  check(result.firstLoadMs <= budgets.loadMs && result.worstLoadMs <= budgets.loadMs, "load");
+  check(active.modelMeshes === budgets.meshes, "mesh count");
+  check(residualPeak.modelMeshes === 0 && residualPeak.geometries <= baseline.geometries && residualPeak.textures <= baseline.textures, "release");
+  check(result.frameP95Ms <= budgets.frameP95Ms, "orbit frame time");
+  check(result.selectMs <= budgets.selectMs, "select");
+  check(result.isolateMs <= budgets.isolateMs && result.resetMs <= budgets.isolateMs, "isolate/reset");
+  check(result.visibilityMs <= budgets.visibilityMs, "visibility");
+  check(result.treeMountMs <= budgets.treeMountMs && result.treeSelectMs <= budgets.treeSelectMs, "structure tree");
+  check(result.heapGrowthBytes === null || result.heapGrowthBytes <= budgets.heapGrowthBytes, "heap growth");
+  result.failures = failures;
+  status.textContent = failures.length === 0 ? "BESTANDEN" : `FEHLER: ${failures.join(", ")}`;
+  status.dataset.result = failures.length === 0 ? "passed" : "failed";
+  metrics.textContent = JSON.stringify(result, null, 2);
+  window.__volundResult = result;
+  window.addEventListener("pagehide", () => viewer.dispose(), { once: true });
+} catch (error) {
+  status.textContent = `FEHLER: ${error}`;
+  status.dataset.result = "failed";
+  window.__volundResult = { failures: [String(error)] };
+}
+</script>
+</html>
