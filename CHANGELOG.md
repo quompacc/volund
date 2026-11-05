@@ -8,6 +8,18 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.41.1] - 2026-11-05
+
+### Changed
+
+- Erzeugte Vorschaubilder haben einen transparenten Hintergrund und zeigen
+  das Modell im Petrol der Oberfläche. Sie passen damit in den hellen wie
+  den dunklen Modus. Der Scheduler erzeugt vorhandene Bilder einmal neu.
+
+### Upgrade
+
+- Keine Migrationen.
+
 ## [0.41.0] - 2026-11-05
 
 ### Added

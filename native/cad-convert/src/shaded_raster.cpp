@@ -11,9 +11,9 @@ namespace {
 constexpr int supersample = 2;
 constexpr double margin = 0.07;           // free border on every side
 constexpr double pi = 3.14159265358979323846;
-constexpr std::array<double, 3> base_colour{231.0, 168.0, 72.0};
-constexpr std::array<int, 3> background_top{30, 38, 52};
-constexpr std::array<int, 3> background_bottom{13, 17, 25};
+// Between the web UI's light (#0e6f7c) and dark (#5bb8c4) accent, so the
+// model reads on both theme stages; the background stays transparent.
+constexpr std::array<double, 3> base_colour{79.0, 163.0, 174.0};
 constexpr std::array<std::array<int, 2>, 4> neighbours{{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}};
 
 struct V {
@@ -65,8 +65,8 @@ struct Bounds {
 std::array<std::uint8_t, 3> shade(const Camera& camera, V a, V b, V c) {
   V normal = normalize(cross(sub(b, a), sub(c, a)));
   if (dot(normal, camera.eye) < 0.0) normal = mul(normal, -1.0);
-  const double light = std::min(1.0, 0.16 + 0.72 * std::max(0.0, dot(normal, camera.key)) +
-                                          0.18 * std::max(0.0, dot(normal, camera.eye)));
+  const double light = std::min(1.12, 0.3 + 0.62 * std::max(0.0, dot(normal, camera.key)) +
+                                           0.18 * std::max(0.0, dot(normal, camera.eye)));
   std::array<std::uint8_t, 3> colour{};
   for (std::size_t channel = 0; channel < colour.size(); ++channel) {
     colour[channel] = static_cast<std::uint8_t>(
@@ -130,22 +130,28 @@ class Raster {
     }
   }
 
+  // Average each 2x2 block: colour over the covered samples, alpha from coverage.
   [[nodiscard]] Image downsample(int width, int height) const {
-    Image image{width, height, std::vector<std::uint8_t>(static_cast<std::size_t>(width * height) * 3U)};
+    Image image{width, height, std::vector<std::uint8_t>(static_cast<std::size_t>(width * height) * 4U)};
+    constexpr int samples = supersample * supersample;
     for (int y = 0; y < height; ++y) {
-      const auto background = background_at(y, height);
       for (int x = 0; x < width; ++x) {
-        for (std::size_t channel = 0; channel < 3U; ++channel) {
-          int sum = 0;
-          for (int sy = 0; sy < supersample; ++sy) {
-            for (int sx = 0; sx < supersample; ++sx) {
-              const auto index = offset(x * supersample + sx, y * supersample + sy);
-              sum += covered(index) ? colour_[index * 3U + channel] : background[channel];
-            }
+        int covered_samples = 0;
+        std::array<int, 3> sum{};
+        for (int sy = 0; sy < supersample; ++sy) {
+          for (int sx = 0; sx < supersample; ++sx) {
+            const auto index = offset(x * supersample + sx, y * supersample + sy);
+            if (!covered(index)) continue;
+            ++covered_samples;
+            for (std::size_t channel = 0; channel < 3U; ++channel) sum[channel] += colour_[index * 3U + channel];
           }
-          image.rgb[(static_cast<std::size_t>(y * width + x)) * 3U + channel] =
-              static_cast<std::uint8_t>((sum + supersample * supersample / 2) / (supersample * supersample));
         }
+        const auto out = static_cast<std::size_t>(y * width + x) * 4U;
+        for (std::size_t channel = 0; channel < 3U; ++channel) {
+          image.rgba[out + channel] = covered_samples == 0 ? 0 : static_cast<std::uint8_t>(
+              (sum[channel] + covered_samples / 2) / covered_samples);
+        }
+        image.rgba[out + 3U] = static_cast<std::uint8_t>((covered_samples * 255 + samples / 2) / samples);
       }
     }
     return image;
@@ -165,16 +171,6 @@ class Raster {
   std::vector<std::uint8_t> colour_;
 };
 }  // namespace
-
-std::array<std::uint8_t, 3> background_at(int y, int height) {
-  const double t = height > 1 ? static_cast<double>(y) / (height - 1) : 0.0;
-  std::array<std::uint8_t, 3> colour{};
-  for (std::size_t channel = 0; channel < colour.size(); ++channel) {
-    colour[channel] = static_cast<std::uint8_t>(std::lround(
-        background_top[channel] + (background_bottom[channel] - background_top[channel]) * t));
-  }
-  return colour;
-}
 
 Image render_shaded(const TriangleSource& source, int width, int height) {
   if (width <= 0 || height <= 0) throw std::invalid_argument("thumbnail size must be positive");

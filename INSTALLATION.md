@@ -1,6 +1,6 @@
 # Installing VÖLUND
 
-VÖLUND 0.41.0 is installed from source. There is currently no supported binary
+VÖLUND 0.41.1 is installed from source. There is currently no supported binary
 package, published container image, guided installer, or unattended upgrade
 mechanism. Container images can be built locally from the same sources; see
 [`deploy/docker/README.md`](deploy/docker/README.md) and ADR 0039.

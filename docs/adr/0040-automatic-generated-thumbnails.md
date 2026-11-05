@@ -21,8 +21,11 @@ an image for every model by hand.
 1. The native converter renders `thumbnail.png` with a deterministic CPU
    rasterizer: orthographic three-quarter view, z-buffered two-sided flat
    shading, silhouette and crease outlines, 2×2 supersampling, and a
-   zlib-compressed PNG (typically 10–20 KB instead of 590 KB). It needs no
-   GPU, display server, or additional runtime package beyond zlib.
+   zlib-compressed RGBA PNG with a transparent background, so the image sits
+   on the light and dark theme alike; the model colour lies between the two
+   themes' accent colours (since 0.41.1). The PNG is typically 10–20 KB
+   instead of 590 KB. It needs no GPU, display server, or additional runtime
+   package beyond zlib.
 2. The scheduler queues, per tick, native conversions for active models whose
    `thumbnail_kind` is `default`, using the configured default preview profile.
    It picks one renderable source per model (primary file, then master CAD,

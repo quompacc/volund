@@ -56,7 +56,7 @@ void write_thumbnail(const Handle(TDocStd_Document)& document,
   const auto image = volund::thumbnail::render_shaded(
       [&](const volund::thumbnail::TriangleSink& sink) { visit_triangles(document, sink); },
       width, height);
-  const auto png = volund::thumbnail::encode_png_rgb(image.width, image.height, image.rgb);
+  const auto png = volund::thumbnail::encode_png_rgba(image.width, image.height, image.rgba);
   std::ofstream output(path, std::ios::binary);
   output.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
   if (!output) throw std::runtime_error("cannot write deterministic thumbnail");
