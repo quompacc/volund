@@ -18,6 +18,11 @@
 *.service.example text eol=lf
 deploy/backup/volund-backup text eol=lf
 deploy/backup/volund-restore text eol=lf
+deploy/docker/volund-loop text eol=lf
+deploy/docker/Dockerfile text eol=lf
+deploy/docker/.env.example text eol=lf
+*.yml text eol=lf
+.dockerignore text eol=lf
 CMakeLists.txt text eol=lf
 
 # Lizenztexte bleiben auch unter Windows bytegleich mit den LF-Prüfsummen.
