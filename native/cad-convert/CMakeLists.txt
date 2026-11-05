@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(volund-cad-convert VERSION 0.41.1 LANGUAGES CXX)
+project(volund-cad-convert VERSION 0.41.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,6 +27,7 @@ add_executable(
   src/sha256.cpp
   src/shaded_raster.cpp
   src/thumbnail.cpp
+  src/three_mf.cpp
 )
 target_include_directories(volund-cad-convert PRIVATE ${OpenCASCADE_INCLUDE_DIR})
 target_compile_definitions(
@@ -73,6 +74,13 @@ if(BUILD_TESTING)
     target_compile_options(volund-thumbnail-test PRIVATE -Wall -Wextra -Wpedantic -Werror)
   endif()
   add_test(NAME thumbnail-renderer COMMAND volund-thumbnail-test)
+
+  add_executable(volund-three-mf-test tests/three_mf_test.cpp src/three_mf.cpp)
+  target_link_libraries(volund-three-mf-test PRIVATE ZLIB::ZLIB)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(volund-three-mf-test PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  endif()
+  add_test(NAME three-mf-reader COMMAND volund-three-mf-test ${CMAKE_CURRENT_BINARY_DIR}/three-mf-test)
 
   add_test(
     NAME cad-convert-e2e

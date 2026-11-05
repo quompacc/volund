@@ -8,6 +8,21 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.41.2] - 2026-11-05
+
+### Fixed
+
+- 3MF-Dateien aus Bambu Studio, PrusaSlicer und OrcaSlicer ließen sich nicht
+  konvertieren („aiScene::mNumMeshes is 0“). Diese Slicer legen die Bauteile
+  in eigene Teildateien (3MF-Production-Erweiterung, `p:path`), denen Assimp
+  nicht folgt. Der Konverter liest 3MF jetzt selbst, inklusive Teildateien und
+  Transformationen (ADR 0041); Assimp bleibt die Rückfallebene. Fehlgeschlagene
+  Vorschaubilder erzeugt der Scheduler mit dieser Version erneut.
+
+### Upgrade
+
+- Keine Migrationen.
+
 ## [0.41.1] - 2026-11-05
 
 ### Changed

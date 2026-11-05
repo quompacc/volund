@@ -21,6 +21,8 @@
 #include <XCAFDoc_ColorTool.hxx>
 #include <XCAFDoc_DocumentTool.hxx>
 #include <XCAFDoc_ShapeTool.hxx>
+#include "three_mf.hxx"
+
 #include <assimp/Importer.hpp>
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
@@ -243,6 +245,114 @@ void import_assimp(const fs::path& path, const Handle(TDocStd_Document)& documen
   }
   shape_tool->UpdateAssemblies();
 }
+TopoDS_Face mesh_face(const std::vector<volund::three_mf::Vertex>& vertices,
+                      const std::vector<std::array<int, 3>>& triangles) {
+  const auto triangulation = new Poly_Triangulation(static_cast<Standard_Integer>(vertices.size()),
+                                                    static_cast<Standard_Integer>(triangles.size()), Standard_False);
+  for (std::size_t index = 0; index < vertices.size(); ++index) {
+    const auto& v = vertices[index];
+    triangulation->SetNode(static_cast<Standard_Integer>(index + 1), gp_Pnt(v[0], v[1], v[2]));
+  }
+  for (std::size_t index = 0; index < triangles.size(); ++index) {
+    const auto& t = triangles[index];
+    triangulation->SetTriangle(static_cast<Standard_Integer>(index + 1), Poly_Triangle(t[0] + 1, t[1] + 1, t[2] + 1));
+  }
+  BRep_Builder builder;
+  TopoDS_Face face;
+  builder.MakeFace(face, triangulation);
+  return face;
+}
+
+TopLoc_Location location_from_3mf(const volund::three_mf::Transform& t) {
+  gp_Trsf transform;
+  transform.SetValues(t[0], t[3], t[6], t[9], t[1], t[4], t[7], t[10], t[2], t[5], t[8], t[11]);
+  return TopLoc_Location(transform);
+}
+
+class ThreeMfAssembler {
+ public:
+  ThreeMfAssembler(const volund::three_mf::Scene& scene, const Handle(XCAFDoc_ShapeTool)& tool, std::string fallback)
+      : scene_(scene), tool_(tool), fallback_(std::move(fallback)), labels_(scene.objects.size()) {}
+
+  // One shared XCAF definition per 3MF object; rigid placements become
+  // located components, scaled or mirrored ones are baked into the mesh.
+  TDF_Label definition(std::size_t index) {
+    if (!labels_[index].IsNull()) return labels_[index];
+    const auto& object = scene_.objects[index];
+    const auto name = object.name.empty() ? fallback_ + "-" + std::to_string(index + 1) : object.name;
+    TDF_Label label;
+    if (object.components.empty() && object.triangles.empty()) {
+      return labels_[index];  // empty object (slicers write placeholders): nothing to show
+    }
+    if (object.components.empty()) {
+      label = tool_->AddShape(mesh_face(object.vertices, object.triangles), Standard_False);
+    } else {
+      // Parts before the assembly that uses them, matching the Assimp path's label order.
+      for (const auto& component : object.components) {
+        if (volund::three_mf::is_rigid(component.transform)) definition(component.object);
+      }
+      label = tool_->NewShape();
+      if (!object.triangles.empty()) {
+        const auto own = tool_->AddShape(mesh_face(object.vertices, object.triangles), Standard_False);
+        set_name(own, name);
+        tool_->AddComponent(label, own, TopLoc_Location());
+      }
+      for (const auto& component : object.components) place(label, component);
+    }
+    set_name(label, name);
+    return labels_[index] = label;
+  }
+
+  void place(const TDF_Label& parent, const volund::three_mf::Instance& instance) {
+    if (volund::three_mf::is_rigid(instance.transform)) {
+      const auto child = definition(instance.object);
+      if (child.IsNull()) return;
+      const auto occurrence = tool_->AddComponent(parent, child, location_from_3mf(instance.transform));
+      Handle(TDataStd_Name) child_name;
+      if (child.FindAttribute(TDataStd_Name::GetID(), child_name)) TDataStd_Name::Set(occurrence, child_name->Get());
+      return;
+    }
+    for (const auto& mesh : volund::three_mf::flatten(scene_, instance.object, instance.transform)) {
+      if (mesh.triangles.empty()) continue;
+      const auto baked = tool_->AddShape(mesh_face(mesh.vertices, mesh.triangles), Standard_False);
+      set_name(baked, mesh.name.empty() ? fallback_ : mesh.name);
+      tool_->AddComponent(parent, baked, TopLoc_Location());
+    }
+  }
+
+ private:
+  const volund::three_mf::Scene& scene_;
+  Handle(XCAFDoc_ShapeTool) tool_;
+  std::string fallback_;
+  std::vector<TDF_Label> labels_;
+};
+
+// Own reader first: Assimp does not follow the production extension's
+// p:path components that slicer projects use; Assimp stays the fallback.
+void import_three_mf(const fs::path& path, const Handle(TDocStd_Document)& document) {
+  volund::three_mf::Scene scene;
+  try {
+    scene = volund::three_mf::read(path);
+  } catch (const std::exception& own_error) {
+    try {
+      import_assimp(path, document, "3MF");
+      return;
+    } catch (const std::exception& assimp_error) {
+      throw std::runtime_error(std::string("3MF import failed: ") + own_error.what() + "; " + assimp_error.what());
+    }
+  }
+  const auto tool = XCAFDoc_DocumentTool::ShapeTool(document->Main());
+  ThreeMfAssembler assembler(scene, tool, path.stem().string());
+  const auto& build = scene.build;
+  if (build.size() == 1 && build[0].transform == volund::three_mf::identity) {
+    assembler.definition(build[0].object);
+  } else {
+    const auto root = tool->NewShape();
+    set_name(root, path.stem().string());
+    for (const auto& item : build) assembler.place(root, item);
+  }
+  tool->UpdateAssemblies();
+}
 }  // namespace
 
 std::string_view format_name(SourceFormat format) {
@@ -295,7 +405,7 @@ Handle(TDocStd_Document) import_document(const fs::path& path,
       import_rwmesh<RWGltf_CafReader>(path, document, "glTF");
       break;
     case SourceFormat::ply: import_assimp(path, document, "PLY"); break;
-    case SourceFormat::three_mf: import_assimp(path, document, "3MF"); break;
+    case SourceFormat::three_mf: import_three_mf(path, document); break;
   }
   return document;
 }
