@@ -1,0 +1,61 @@
+#!/bin/sh
+# volund-loop SECONDS COMMAND [ARG...]
+#
+# Container replacement for a systemd timer with OnUnitInactiveSec=SECONDS:
+# runs COMMAND, waits SECONDS after it finished, and repeats. A failed run is
+# logged and retried after the interval, like a failed oneshot unit.
+#
+# SIGTERM/SIGINT (docker stop) are forwarded to a running COMMAND so that
+# workers can requeue their job as under `systemctl stop` (ADR 0030); the loop
+# then exits with status 0 instead of starting another run.
+set -u
+
+if [ "$#" -lt 2 ]; then
+    echo "usage: volund-loop SECONDS COMMAND [ARG...]" >&2
+    exit 64
+fi
+interval=$1
+shift
+case $interval in
+    '' | *[!0-9]*)
+        echo "volund-loop: SECONDS must be a whole number" >&2
+        exit 64
+        ;;
+esac
+
+stopping=0
+child=
+on_signal() {
+    stopping=1
+    if [ -n "$child" ]; then
+        kill -TERM "$child" 2>/dev/null
+    fi
+}
+trap on_signal TERM INT
+
+# Wait for $child even when the wait is interrupted by a trapped signal.
+await_child() {
+    status=0
+    while :; do
+        wait "$child"
+        status=$?
+        kill -0 "$child" 2>/dev/null || break
+    done
+    child=
+    return "$status"
+}
+
+while [ "$stopping" -eq 0 ]; do
+    "$@" &
+    child=$!
+    await_child
+    status=$?
+    if [ "$status" -ne 0 ] && [ "$stopping" -eq 0 ]; then
+        echo "volund-loop: '$*' exited with status $status" >&2
+    fi
+    [ "$stopping" -eq 0 ] || break
+    sleep "$interval" &
+    child=$!
+    await_child
+done
+exit 0

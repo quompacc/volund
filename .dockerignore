@@ -1,0 +1,10 @@
+.git
+target
+build
+var
+fixtures/private
+assets
+apps/volund-web/node_modules
+apps/volund-web/dist
+**/*.step
+**/*.stp

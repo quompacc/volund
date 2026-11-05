@@ -57,6 +57,9 @@ jobs:
       - name: Enforce handwritten file line limit
         run: sh scripts/check-line-limit.sh
 
+      - name: Test container timer loop
+        run: sh deploy/docker/tests/volund-loop-test.sh
+
       - name: Install locked web dependencies
         working-directory: apps/volund-web
         run: npm ci

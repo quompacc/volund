@@ -21,8 +21,12 @@
 - Do not commit secrets, credentials, large CAD assets, generated previews,
   build outputs, database contents, or backups.
 - Record consequential architecture choices as ADRs in `docs/adr/`.
-- Deploy and develop VÖLUND natively on Debian without Docker. Docker is allowed
-  only inside the dedicated, isolated Gitea CI runner LXC for ephemeral builds
-  and tests; it must not become an application runtime or deployment dependency.
+- Develop VÖLUND natively on Debian. Two deployments are supported (ADR 0039):
+  the native systemd installation in `deploy/debian/` and the Docker Compose
+  stack in `deploy/docker/`. Both build the same sources from Debian 13 packages
+  with the locked dependencies. Keep them functionally equivalent. A change to
+  a systemd unit's command, paths, limits, or isolation needs the matching change
+  in `deploy/docker/compose.yaml`, and the reverse. Docker must stay optional:
+  the native deployment must never depend on it.
 
 See `CONTRIBUTING.md` for the human-facing workflow and release checklist.

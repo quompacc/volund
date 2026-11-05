@@ -1,0 +1,167 @@
+# VÖLUND with Docker Compose (ADR 0039). Images: see Dockerfile.
+#
+# Mapping of the native systemd units (deploy/systemd/*.example):
+#   volundd.service              -> volund          (only service with a network)
+#   volund-preview-worker.timer  -> volund-preview  (every 10 s after the last run)
+#   volund-scan-worker.timer     -> volund-scan     (5 s)
+#   volund-scheduler.timer       -> volund-scheduler (30 s)
+#   volund-import-cleanup.timer  -> volund-cleanup  (hourly)
+#   volund-retention.timer       -> volund-retention (daily)
+#   volund-backup.timer          -> volund-backup   (daily)
+#   postgresql@17-volund         -> volund-db       (Unix socket only, no TCP)
+#   `volundd migrate` + `database-doctor` -> volund-migrate, gate for all others
+#
+# Workers and the database have no network at all (network_mode: none); they
+# talk to PostgreSQL over the shared socket with peer authentication, the
+# Docker equivalent of RestrictAddressFamilies=AF_UNIX. Only `volund` joins
+# the reverse-proxy network; no port is published on the host.
+#
+# Host paths come from .env (see .env.example).
+name: volund
+
+x-app: &app
+  image: ${VOLUND_IMAGE:-volund:local}
+  user: "10010:10010"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp:size=256m"]
+  restart: unless-stopped
+  stop_grace_period: 40s
+  depends_on:
+    volund-migrate:
+      condition: service_completed_successfully
+
+services:
+  volund-db:
+    image: ${VOLUND_DB_IMAGE:-volund-db:local}
+    network_mode: none
+    restart: unless-stopped
+    shm_size: 256m
+    command: ["postgres", "-c", "listen_addresses="]
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-superuser
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --data-checksums --auth-local=peer --auth-host=reject"
+      PGDATA: /var/lib/postgresql/data/17
+    secrets: [postgres-superuser]
+    volumes:
+      - ${VOLUND_DATA}/postgres:/var/lib/postgresql/data
+      - pgsocket:/var/run/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "/var/run/postgresql", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  volund-migrate:
+    <<: *app
+    restart: "no"
+    network_mode: none
+    depends_on:
+      volund-db:
+        condition: service_healthy
+    command: ["sh", "-c", "volundd migrate && volundd database-doctor"]
+    volumes:
+      - pgsocket:/var/run/postgresql
+
+  volund:
+    <<: *app
+    command: ["volundd", "serve"]
+    environment:
+      VOLUND_LISTEN_ADDR: 0.0.0.0:8080
+      VOLUND_SECURE_COOKIES: "true"
+      VOLUND_PUBLIC_BASE_URL: ${VOLUND_PUBLIC_BASE_URL}
+    networks: [proxy]
+    volumes:
+      - pgsocket:/var/run/postgresql
+      - ${VOLUND_LIBRARY}:/srv/volund/library
+      - ${VOLUND_DATA}/incoming:/srv/volund/incoming
+      - ${VOLUND_DATA}/support:/srv/volund/support
+      - ${VOLUND_DATA}/derived:/srv/volund/derived:ro
+    mem_limit: 6500m
+    pids_limit: 160
+
+  volund-preview:
+    <<: *app
+    network_mode: none
+    command: ["volund-loop", "10", "volundd", "process-next-preview"]
+    volumes:
+      - pgsocket:/var/run/postgresql
+      - ${VOLUND_LIBRARY}:/srv/volund/library:ro
+      - ${VOLUND_DATA}/derived:/srv/volund/derived
+      - ${VOLUND_DATA}/scratch:/srv/volund/scratch
+    mem_limit: 6500m
+    memswap_limit: 7500m
+    pids_limit: 160
+
+  volund-scan:
+    <<: *app
+    network_mode: none
+    command: ["volund-loop", "5", "volundd", "process-next-scan"]
+    volumes:
+      - pgsocket:/var/run/postgresql
+      - ${VOLUND_LIBRARY}:/srv/volund/library:ro
+    mem_limit: 3g
+    memswap_limit: 3584m
+    pids_limit: 80
+
+  volund-scheduler:
+    <<: *app
+    network_mode: none
+    command: ["volund-loop", "30", "volundd", "process-schedules"]
+    volumes:
+      - pgsocket:/var/run/postgresql
+
+  volund-cleanup:
+    <<: *app
+    network_mode: none
+    command: ["volund-loop", "3600", "volundd", "run-import-cleanup"]
+    volumes:
+      - pgsocket:/var/run/postgresql
+      - ${VOLUND_DATA}/incoming:/srv/volund/incoming
+
+  volund-retention:
+    <<: *app
+    network_mode: none
+    command: ["volund-loop", "86400", "volundd", "run-retention"]
+    volumes:
+      - pgsocket:/var/run/postgresql
+      - ${VOLUND_DATA}/derived:/srv/volund/derived
+
+  # volund-backup.timer -> validated pg_dump once a day; records the outcome
+  # in the operations view. Source (library) and target must be on different
+  # devices, as enforced by deploy/backup/volund-backup.
+  volund-backup:
+    <<: *app
+    image: ${VOLUND_DB_IMAGE:-volund-db:local}
+    network_mode: none
+    command: ["volund-loop", "86400", "/usr/local/sbin/volund-backup"]
+    environment:
+      VOLUND_BACKUP_DIR: /backup
+      VOLUND_BACKUP_SOURCE_PATH: /srv/volund/library
+      VOLUND_BACKUP_DATABASE: volund
+      VOLUND_BACKUP_RETENTION_DAYS: "14"
+      VOLUND_VERSION: ${VOLUND_VERSION:-unknown}
+    volumes:
+      - pgsocket:/var/run/postgresql
+      - ${VOLUND_LIBRARY}:/srv/volund/library:ro
+      - ${VOLUND_BACKUP_DIR}:/backup
+
+volumes:
+  # Shared PostgreSQL socket directory; in memory, owned by the image's
+  # postgres account (uid 999), traversable by `volund`.
+  pgsocket:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "uid=999,gid=999,mode=0755"
+
+secrets:
+  postgres-superuser:
+    file: ${VOLUND_DATA}/secrets/postgres-superuser
+
+networks:
+  proxy:
+    external: true
+    name: ${VOLUND_PROXY_NETWORK:-proxy}

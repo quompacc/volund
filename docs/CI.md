@@ -11,8 +11,8 @@ libraries, or consumes deployment credentials.
 The private Gitea runner must register an `ubuntu-latest` label backed by
 Docker. GitHub uses a hosted `ubuntu-latest` runner. Both workflows select
 `node:20-trixie`; PostgreSQL runs in a separate `postgres:17-bookworm` service
-container. Docker remains a CI implementation detail and is not an application
-runtime.
+container. The CI containers are ephemeral and independent of the optional
+container deployment in `deploy/docker/` (ADR 0039).
 
 The runner needs:
 

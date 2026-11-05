@@ -1,6 +1,6 @@
 # ADR 0003: Native Linux deployment without containers
 
-- Status: Accepted
+- Status: Superseded by [ADR 0039](0039-container-deployment.md)
 - Date: 2026-08-28
 
 ## Decision

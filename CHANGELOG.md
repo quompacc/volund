@@ -8,6 +8,18 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+### Added
+
+- Docker-Compose-Betrieb als zweite unterstützte Bereitstellung neben systemd
+  (ADR 0039, ersetzt ADR 0003). Dazu gehören:
+  - `deploy/docker/` mit Dockerfile (App- und Datenbank-Image aus
+    Debian-13-Paketen), `compose.yaml` und einer Anleitung;
+  - `volund-loop` als Ersatz für die systemd-Timer, abgedeckt durch einen
+    Test im CI.
+
+  Worker und Datenbank laufen ohne Netzwerk und verbinden sich per
+  gemeinsamem Socket mit Peer-Authentifizierung.
+
 ## [0.40.1] - 2026-10-26
 
 ### Fixed

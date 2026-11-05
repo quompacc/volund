@@ -71,7 +71,8 @@ VÖLUND.
 - Replacing a parametric CAD authoring application.
 - Editing STEP/BREP geometry in the browser.
 - Public multi-tenant SaaS operation.
-- A production dependency on Docker, FreeCAD, or a proprietary cloud service.
+- A mandatory production dependency on Docker, FreeCAD, or a proprietary cloud
+  service. The container deployment (ADR 0039) is optional.
 - Full enterprise PLM, ERP, purchasing, or manufacturing execution in the first
   product generations.
 

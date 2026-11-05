@@ -74,9 +74,9 @@ may relocate them inside a library, with stable identity, no-overwrite behavior,
 rollback, and auditing. Never commit credentials, large CAD fixtures, generated
 artifacts, database files, or backups.
 
-Consequential architecture decisions belong in `docs/adr/`. Development and
-production deployment remain native on Debian without Docker. The only Docker
-exception is the dedicated, isolated Gitea CI runner LXC, where containers may
-be used for ephemeral builds and tests. CI containers must never become a
-VÖLUND runtime dependency or receive production CAD data, credentials, or
-database access.
+Consequential architecture decisions belong in `docs/adr/`. Development is
+native on Debian. Production runs either natively with systemd
+(`deploy/debian/`) or as the Docker Compose stack in `deploy/docker/`
+(ADR 0039). Keep both deployments functionally equivalent. CI containers stay
+ephemeral and must never receive production CAD data, credentials, or database
+access.
