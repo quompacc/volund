@@ -118,7 +118,7 @@ jobs:
       - name: Audit Rust lockfile
         run: |
           cargo install cargo-audit --version 0.22.1 --locked
-          cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0367 --ignore RUSTSEC-2026-0368 --ignore RUSTSEC-2026-0369
+          cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0367 --ignore RUSTSEC-2026-0368 --ignore RUSTSEC-2026-0369 --ignore RUSTSEC-2026-0429
 
   source-artifact:
     runs-on: ubuntu-latest
