@@ -94,8 +94,10 @@ jobs:
           cmake -S native/cad-convert -B build/cad-convert -DCMAKE_BUILD_TYPE=Release
           cmake --build build/cad-convert --parallel 2
           ctest --test-dir build/cad-convert --output-on-failure
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          test -n "$version"
           build/cad-convert/volund-cad-convert version |
-            grep -q '^volund-cad-convert 0\.39\.0 contract-v1 occt-'
+            grep -qF "volund-cad-convert $version contract-v1 occt-"
 
       - name: Run complete Rust and PostgreSQL gate
         env:
@@ -131,7 +133,9 @@ jobs:
         run: |
           set -euo pipefail
           version=$(node -p "require('./apps/volund-web/package.json').version")
-          test "$version" = "0.39.0"
+          cargo_version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          test "$version" = "$cargo_version"
+          echo "VOLUND_VERSION=$version" >> "$GITHUB_ENV"
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             test "$GITHUB_REF_NAME" = "v$version"
           fi
@@ -150,7 +154,7 @@ jobs:
         with:
           name: volund-source-${{ github.sha }}
           path: |
-            volund-0.39.0.tar.gz
+            volund-${{ env.VOLUND_VERSION }}.tar.gz
             SHA256SUMS
           if-no-files-found: error
           retention-days: 14
