@@ -41,7 +41,7 @@ sudo apt-get install \
   libocct-ocaf-dev \
   libocct-visualization-dev \
   libassimp-dev assimp-utils \
-  libtbb-dev libfontconfig1-dev
+  libtbb-dev libfontconfig1-dev zlib1g-dev
 ```
 
 `libtbb-dev` and `libfontconfig1-dev` are explicit because Debian's OCCT CMake

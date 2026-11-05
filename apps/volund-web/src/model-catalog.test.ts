@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fileDetailMarkup, fileGlyph, modelCardMarkup, modelFileFilter, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
+import { fileDetailMarkup, fileGlyph, hasThumbnailImage, modelCardMarkup, modelFileFilter, modelFilesMarkup, modelProblemState, thumbnailPanelMarkup } from "./model-presentation";
 import type { ModelFile, ModelSummary, ThumbnailCandidate } from "./types";
 
 describe("persistent model catalog presentation", () => {
@@ -43,13 +43,24 @@ describe("persistent model catalog presentation", () => {
     expect(editor).toContain('class="thumbnail-select"');
     expect(editor).toContain('value="source-file|file-1" selected');
     expect(editor).not.toContain("Neu erzeugen");
-    expect(editor).toContain("Neutralen Platzhalter verwenden");
+    expect(editor).toContain("Kein eigenes Bild (automatische Ansicht)");
     expect(editor).not.toContain("Standardansicht");
 
     const generated = { ...base, thumbnail: { kind: "default" as const, candidateId: null, url: "/api/v1/artifacts/raster/content", status: "generated" as const } };
-    expect(modelCardMarkup(generated)).toContain("Eigenes Bild auswählen");
-    expect(modelCardMarkup(generated)).not.toContain('class="model-thumbnail"');
-    expect(thumbnailPanelMarkup(generated, [], false)).toContain("neutraler Platzhalter");
+    // ADR 0040: an image generated from the 3D source is shown until the user chooses one.
+    expect(hasThumbnailImage(generated)).toBe(true);
+    expect(modelCardMarkup(generated)).toContain('class="model-thumbnail"');
+    expect(modelCardMarkup(generated)).toContain('src="/api/v1/artifacts/raster/content"');
+    expect(modelCardMarkup(generated)).toContain("Automatisch erzeugt");
+    expect(modelCardMarkup(generated)).not.toContain("Eigenes Bild auswählen");
+    const generatedPanel = thumbnailPanelMarkup(generated, [], false);
+    expect(generatedPanel).toContain('alt="Automatisch erzeugte Ansicht für');
+    expect(generatedPanel).toContain("Ein eigenes Bild hat Vorrang.");
+    expect(thumbnailPanelMarkup(generated, [], true)).toContain('<option value="" selected>Kein eigenes Bild (automatische Ansicht)</option>');
+    const pending = { ...generated, thumbnail: { ...generated.thumbnail, url: null, status: "default" as const } };
+    expect(hasThumbnailImage(pending)).toBe(false);
+    expect(modelCardMarkup(pending)).toContain("Eigenes Bild auswählen");
+    expect(thumbnailPanelMarkup(pending, [], false)).toContain("neutraler Platzhalter");
   });
 
   it("keeps the foreground thumbnail uncropped after the complete CSS cascade", () => {

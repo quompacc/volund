@@ -9,7 +9,7 @@
 | TXT, Markdown, JSON, YAML and bounded text documents | Sandboxed same-origin document frame | Download / separate open |
 | CSV and table-like text | Readable document view | Download |
 | STEP, IGES, BREP | Native OCCT-derived GLB, thumbnail and structure manifest | Metadata plus original download |
-| STL | Direct local mesh viewer; native preview may also be requested | Original download |
+| STL | Direct local mesh viewer; native GLB and generated thumbnail (ADR 0040) | Original download |
 | 3MF, OBJ, PLY, glTF, GLB | Native derived GLB inspection | Metadata plus original download |
 | Unsupported/binary/archive | Truthful metadata, size, role and path | Original download only |
 

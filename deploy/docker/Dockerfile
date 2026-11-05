@@ -1,6 +1,6 @@
 # VÖLUND container images (ADR 0039). Build context: repository root.
 #
-#   docker build -f deploy/docker/Dockerfile --target app -t volund:0.40.1 .
+#   docker build -f deploy/docker/Dockerfile --target app -t volund:0.41.0 .
 #   docker build -f deploy/docker/Dockerfile --target db  -t volund-db:17 .
 #
 # The app image keeps the native layout of deploy/debian/README.md: binaries in
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libocct-foundation-dev libocct-modeling-data-dev \
         libocct-modeling-algorithms-dev libocct-data-exchange-dev \
         libocct-ocaf-dev libocct-visualization-dev \
-        libassimp-dev assimp-utils libtbb-dev libfontconfig1-dev \
+        libassimp-dev assimp-utils libtbb-dev libfontconfig1-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY . .

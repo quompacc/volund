@@ -8,8 +8,16 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-11-05
+
 ### Added
 
+- Automatische Vorschaubilder (ADR 0040). Modelle ohne eigenes Bild bekommen
+  ein aus ihrer 3D-Datei erzeugtes Bild, auch reine STL-Modelle. Der Scheduler
+  stößt dafür höchstens zwei Konvertierungen gleichzeitig an und wiederholt
+  fehlgeschlagene nicht automatisch. Ein selbst gewähltes Bild hat weiter Vorrang.
+- Der Konverter zeichnet Vorschaubilder schattiert mit Konturen statt als
+  Drahtgitter. Die PNGs sind komprimiert (etwa 10–20 KB statt 590 KB).
 - Docker-Compose-Betrieb als zweite unterstützte Bereitstellung neben systemd
   (ADR 0039, ersetzt ADR 0003). Dazu gehören:
   - `deploy/docker/` mit Dockerfile (App- und Datenbank-Image aus
@@ -19,6 +27,18 @@ until a signed release tag is created.
 
   Worker und Datenbank laufen ohne Netzwerk und verbinden sich per
   gemeinsamem Socket mit Peer-Authentifizierung.
+
+### Changed
+
+- Die Modellkarte und die Modellseite zeigen automatisch erzeugte
+  Vorschaubilder an, statt sie hinter einem Platzhalter zu verbergen.
+
+### Upgrade
+
+- Keine Migrationen. Neue Bauabhängigkeit: `zlib1g-dev`.
+- Nach dem Update erzeugt der Scheduler für alle Modelle ohne eigenes Bild
+  nacheinander neue Vorschaubilder; bei großen STEP-Baugruppen dauert das
+  einige Minuten pro Modell.
 
 ## [0.40.1] - 2026-10-26
 

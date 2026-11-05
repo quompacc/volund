@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(volund-cad-convert VERSION 0.40.1 LANGUAGES CXX)
+project(volund-cad-convert VERSION 0.41.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,13 +16,16 @@ find_package(
     DataExchange
 )
 find_package(assimp REQUIRED CONFIG)
+find_package(ZLIB REQUIRED)
 
 add_executable(
   volund-cad-convert
   src/main.cpp
   src/importer.cpp
   src/options.cpp
+  src/png_writer.cpp
   src/sha256.cpp
+  src/shaded_raster.cpp
   src/thumbnail.cpp
 )
 target_include_directories(volund-cad-convert PRIVATE ${OpenCASCADE_INCLUDE_DIR})
@@ -45,6 +48,7 @@ target_link_libraries(
     TKBRep
     TKMesh
     assimp::assimp
+    ZLIB::ZLIB
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -62,6 +66,13 @@ if(BUILD_TESTING)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(volund-cad-fixture PRIVATE -Wall -Wextra -Wpedantic -Werror)
   endif()
+
+  add_executable(volund-thumbnail-test tests/thumbnail_test.cpp src/shaded_raster.cpp src/png_writer.cpp)
+  target_link_libraries(volund-thumbnail-test PRIVATE ZLIB::ZLIB)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(volund-thumbnail-test PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  endif()
+  add_test(NAME thumbnail-renderer COMMAND volund-thumbnail-test)
 
   add_test(
     NAME cad-convert-e2e

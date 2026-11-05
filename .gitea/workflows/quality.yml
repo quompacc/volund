@@ -39,7 +39,7 @@ jobs:
           apt-get update && apt-get install -y --no-install-recommends
           ca-certificates git build-essential cmake pkg-config
           cargo rustc rust-clippy rustfmt
-          libassimp-dev assimp-utils
+          libassimp-dev assimp-utils zlib1g-dev
           libocct-foundation-dev libocct-modeling-data-dev
           libocct-modeling-algorithms-dev libocct-visualization-dev
           libocct-ocaf-dev libocct-data-exchange-dev

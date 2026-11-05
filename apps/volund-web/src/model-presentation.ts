@@ -5,14 +5,20 @@ import type { ModelProblem } from "./problem-types";
 import { THUMBNAIL_UPLOAD_ACCEPT } from "./thumbnail-upload";
 import type { ModelFile, ModelSummary, SlicerTarget, ThumbnailCandidate } from "./types";
 
+/** A chosen image or one generated from the 3D source (ADR 0040) can be shown. */
+export function hasThumbnailImage(model: ModelSummary): boolean {
+  return (model.thumbnail.status === "ready" || model.thumbnail.status === "generated") && Boolean(model.thumbnail.url);
+}
+
 export function modelCardMarkup(model: ModelSummary): string {
   const collection = model.collections.join(" · ") || "Ohne Kollektion";
   const formats = model.formats.length > 0 ? model.formats : [model.kind];
   const tags = model.tags.map((tag, index) => `<button type="button" class="tag-chip" data-model-tag-filter="${escapeMarkup(model.tagIds[index] || "")}" aria-label="Nach Tag ${escapeMarkup(tag)} filtern">${escapeMarkup(tag)}</button>`).join("");
-  const coverContent = model.thumbnail.status === "ready" && model.thumbnail.url
-    ? `<span class="model-thumbnail-frame"><img class="model-thumbnail-backdrop" src="${escapeMarkup(model.thumbnail.url)}" alt="" aria-hidden="true"><img class="model-thumbnail" data-thumbnail-fit="contain" src="${escapeMarkup(model.thumbnail.url)}" alt="Vorschaubild für ${escapeMarkup(model.name)}"></span>`
+  const coverUrl = hasThumbnailImage(model) ? model.thumbnail.url : null;
+  const coverContent = coverUrl
+    ? `<span class="model-thumbnail-frame"><img class="model-thumbnail-backdrop" src="${escapeMarkup(coverUrl)}" alt="" aria-hidden="true"><img class="model-thumbnail" data-thumbnail-fit="contain" src="${escapeMarkup(coverUrl)}" alt="Vorschaubild für ${escapeMarkup(model.name)}"></span>`
     : `<span class="model-thumbnail-placeholder"><i class="icon icon-image" aria-hidden="true"></i><small>Eigenes Bild auswählen</small></span>`;
-  const thumbnailStatus = model.thumbnail.status === "fallback" ? '<span class="model-state thumbnail-fallback">Auswahl nicht verfügbar</span>' : model.thumbnail.status === "ready" ? '<span class="model-state"><i></i> Eigenes Vorschaubild</span>' : '<span class="model-state"><i></i> Katalogisiert</span>';
+  const thumbnailStatus = model.thumbnail.status === "fallback" ? '<span class="model-state thumbnail-fallback">Auswahl nicht verfügbar</span>' : model.thumbnail.status === "ready" ? '<span class="model-state"><i></i> Eigenes Vorschaubild</span>' : model.thumbnail.status === "generated" ? '<span class="model-state"><i></i> Automatisch erzeugt</span>' : '<span class="model-state"><i></i> Katalogisiert</span>';
   return `<article class="model-card" data-model="${escapeMarkup(model.id)}"><button class="model-cover" data-open-model="${escapeMarkup(model.id)}" aria-label="${escapeMarkup(model.name)} öffnen">${coverContent}${thumbnailStatus}</button><div class="model-card-body"><p class="eyebrow">${escapeMarkup(collection)}</p><h3>${escapeMarkup(model.name)}</h3><p>${escapeMarkup(model.description || `${model.fileCount} dauerhaft verknüpfte Projektdateien.`)}</p><div class="format-pills">${formats.map((format) => `<span>${escapeMarkup(format.toUpperCase())}</span>`).join("")}${tags}</div></div><footer><span>${model.fileCount} Dateien</span><span>${escapeMarkup(formatUpdated(model.updatedAtUnixMs))}</span><button data-open-model="${escapeMarkup(model.id)}">Öffnen →</button></footer></article>`;
 }
 
@@ -25,15 +31,16 @@ export function modelProblemState(problems: ModelProblem[]): { tone: "ok" | "war
 
 export function thumbnailPanelMarkup(model: ModelSummary, candidates: ThumbnailCandidate[], canEdit: boolean): string {
   const selected = model.thumbnail.candidateId;
-  const visual = model.thumbnail.status === "ready" && model.thumbnail.url
-    ? `<img class="selected-thumbnail" src="${escapeMarkup(model.thumbnail.url)}" alt="Ausgewähltes Vorschaubild für ${escapeMarkup(model.name)}">`
-    : `<div class="thumbnail-default"><span class="icon icon-image" aria-hidden="true"></span><small>${model.thumbnail.status === "fallback" ? "Die ausgewählte Bildquelle ist nicht mehr verfügbar. Bitte ein anderes echtes Bild wählen." : "Noch kein echtes Vorschaubild ausgewählt. Bis dahin wird ein neutraler Platzhalter gezeigt."}</small></div>`;
+  const generated = model.thumbnail.status === "generated";
+  const visual = hasThumbnailImage(model)
+    ? `<img class="selected-thumbnail" src="${escapeMarkup(model.thumbnail.url || "")}" alt="${generated ? "Automatisch erzeugte Ansicht" : "Ausgewähltes Vorschaubild"} für ${escapeMarkup(model.name)}">${generated ? '<p class="thumbnail-generated-note">Automatisch aus der 3D-Datei erzeugt. Ein eigenes Bild hat Vorrang.</p>' : ""}`
+    : `<div class="thumbnail-default"><span class="icon icon-image" aria-hidden="true"></span><small>${model.thumbnail.status === "fallback" ? "Die ausgewählte Bildquelle ist nicht mehr verfügbar. Bitte ein anderes echtes Bild wählen." : "Noch kein Vorschaubild. Volund erzeugt automatisch eine Ansicht aus der 3D-Datei; bis dahin wird ein neutraler Platzhalter gezeigt."}</small></div>`;
   if (!canEdit) return `<section class="thumbnail-panel"><p class="eyebrow">VORSCHAUBILD</p>${visual}</section>`;
   const imageCandidates = candidates.filter((candidate) => candidate.kind === "source-file");
   const unavailable = model.thumbnail.kind === "source-file" && selected && !imageCandidates.some((candidate) => candidate.id === selected)
     ? `<option value="${escapeMarkup(`${model.thumbnail.kind}|${selected}`)}" selected disabled>Ausgewählte Quelle ist nicht verfügbar</option>` : "";
   const options = imageCandidates.map((candidate) => `<option value="${escapeMarkup(`${candidate.kind}|${candidate.id}`)}"${candidate.id === selected ? " selected" : ""}>Bilddatei · ${escapeMarkup(candidate.label)}</option>`).join("");
-  return `<section class="thumbnail-panel"><p class="eyebrow">VORSCHAUBILD</p>${visual}<form id="thumbnail-form"><label>Vorschaubild<select class="thumbnail-select" name="thumbnail"><option value=""${model.thumbnail.kind === "default" || model.thumbnail.status === "generated" ? " selected" : ""}>Neutralen Platzhalter verwenden</option>${unavailable}${options}</select></label><button class="secondary-action">Auswahl speichern</button><p id="thumbnail-status" class="form-message" aria-live="polite" tabindex="-1">${imageCandidates.length === 0 ? "Dem Modell ist noch keine verwendbare Bilddatei zugeordnet." : ""}</p></form><div class="thumbnail-upload"><label class="secondary-action"><span class="icon icon-upload" aria-hidden="true"></span>Neues Bild hochladen<input id="thumbnail-upload" type="file" accept="${THUMBNAIL_UPLOAD_ACCEPT}"></label><p id="thumbnail-upload-status" class="form-message" aria-live="polite" tabindex="-1">Wird dem Modell als Bilddatei hinzugefügt und direkt als Vorschaubild gesetzt.</p></div></section>`;
+  return `<section class="thumbnail-panel"><p class="eyebrow">VORSCHAUBILD</p>${visual}<form id="thumbnail-form"><label>Vorschaubild<select class="thumbnail-select" name="thumbnail"><option value=""${model.thumbnail.kind === "default" || model.thumbnail.status === "generated" ? " selected" : ""}>Kein eigenes Bild (automatische Ansicht)</option>${unavailable}${options}</select></label><button class="secondary-action">Auswahl speichern</button><p id="thumbnail-status" class="form-message" aria-live="polite" tabindex="-1">${imageCandidates.length === 0 ? "Dem Modell ist noch keine verwendbare Bilddatei zugeordnet." : ""}</p></form><div class="thumbnail-upload"><label class="secondary-action"><span class="icon icon-upload" aria-hidden="true"></span>Neues Bild hochladen<input id="thumbnail-upload" type="file" accept="${THUMBNAIL_UPLOAD_ACCEPT}"></label><p id="thumbnail-upload-status" class="form-message" aria-live="polite" tabindex="-1">Wird dem Modell als Bilddatei hinzugefügt und direkt als Vorschaubild gesetzt.</p></div></section>`;
 }
 
 export type ModelFileFilter = "all" | "step" | "stl" | "images" | "documents" | "other";

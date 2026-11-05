@@ -96,6 +96,7 @@ mod source_stream;
 pub mod storage_health;
 pub mod support_bundle;
 pub mod tag_catalog;
+pub mod thumbnail_backfill;
 pub mod thumbnail_catalog;
 pub mod user_admin;
 pub mod user_invitation;
