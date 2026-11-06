@@ -8,6 +8,32 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.41.3] - 2026-11-06
+
+### Fixed
+
+- Administration: Felder, Auswahllisten und Buttons haben in allen Bereichen
+  dieselbe Höhe und stehen auf einer Linie. Buttons behalten ihre natürliche
+  Breite statt sich über eine Rasterspalte zu strecken. „Bibliothek anlegen“
+  rutscht nicht mehr in eine eigene Zeile, „Umbenennen“ steht auf Höhe der
+  Scan-Aktionen, und der leere Balken über den Bereichsreitern ist weg.
+- Persönliche Einstellungen: Alle Auswahllisten beginnen auf einer Linie;
+  Raster-Schalter und Speichern stehen in einer eigenen Aktionszeile.
+- Bibliotheksscan-Zeitpläne: Wochentage werden als Tage (Mo–So) gewählt statt
+  als Bitmaske; die Liste zeigt sie lesbar („täglich“, „Mo–Fr“). Ohne
+  gewählten Tag wird nichts gespeichert.
+- Deutsche Bezeichnungen für Rollen, Kontostatus, Scan- und Zeitplanstatus
+  („Abgeschlossen“, „eingereiht“, „Zeitplaner“) statt englischer Rohwerte.
+- API-Tokens erscheinen in derselben Listenform wie Sitzungen und Nutzer; die
+  leere Quarantäne nimmt keine halbe Bildschirmhöhe mehr ein.
+- STEP-Dateien, die nur Produktdaten und keine Geometrie enthalten, melden
+  jetzt „STEP file contains no geometry (only product metadata)“ statt des
+  allgemeinen OCCT-Importfehlers.
+
+### Upgrade
+
+- Keine Migrationen.
+
 ## [0.41.2] - 2026-11-05
 
 ### Fixed

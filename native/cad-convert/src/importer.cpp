@@ -11,6 +11,9 @@
 #include <RWGltf_CafReader.hxx>
 #include <RWObj_CafReader.hxx>
 #include <STEPCAFControl_Reader.hxx>
+#include <STEPControl_Reader.hxx>
+#include <StepData_StepModel.hxx>
+#include <StepShape_ShapeDefinitionRepresentation.hxx>
 #include <TCollection_AsciiString.hxx>
 #include <TCollection_ExtendedString.hxx>
 #include <TDataStd_Name.hxx>
@@ -72,14 +75,31 @@ void add_single_shape(const Handle(TDocStd_Document)& document,
   set_name(label, name);
 }
 
+bool step_has_shape(const Handle(StepData_StepModel)& model) {
+  if (model.IsNull()) return false;
+  for (Standard_Integer index = 1; index <= model->NbEntities(); ++index) {
+    if (model->Value(index)->IsKind(STANDARD_TYPE(StepShape_ShapeDefinitionRepresentation))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void import_step(const fs::path& path, const Handle(TDocStd_Document)& document) {
   STEPCAFControl_Reader reader;
   reader.SetColorMode(Standard_True);
   reader.SetNameMode(Standard_True);
   reader.SetLayerMode(Standard_True);
   reader.SetPropsMode(Standard_True);
-  if (reader.ReadFile(path.string().c_str()) != IFSelect_RetDone ||
-      !reader.Transfer(document)) {
+  if (reader.ReadFile(path.string().c_str()) != IFSelect_RetDone) {
+    throw std::runtime_error("OCCT could not read the STEP file");
+  }
+  if (!step_has_shape(reader.ChangeReader().StepModel())) {
+    // Some CAD exports write only product metadata (name, dates, approvals)
+    // and no shape at all; say so instead of reporting a generic failure.
+    throw std::runtime_error("STEP file contains no geometry (only product metadata)");
+  }
+  if (!reader.Transfer(document)) {
     throw std::runtime_error("OCCT could not import STEP data");
   }
 }

@@ -15,7 +15,7 @@ describe("P2.4 policy administration",()=>{
 
   it("shows durable profile and schedule state with labeled controls",()=>{
     const markup=policyPanels([{id:"profile",name:"Fein",nativePreset:"fine",linearDeflection:null,angularDeflection:null,enabled:true,builtIn:false,revision:2}],[{id:"schedule",libraryId:"library",libraryName:"CAD",name:"Nacht",localTime:"02:30",timeZone:"Europe/Berlin",weekdayMask:127,fullScan:false,enabled:true,nextRunAtUnixMs:1,lastScheduledAtUnixMs:1,lastOutcome:"coalesced",lastScanId:"scan",lastScanStatus:"completed",revision:3}],{artifactRuns:0,artifactFiles:0,artifactBytes:0,diagnostics:0,reasonCodes:[]},[{id:"library",key:"cad",name:"CAD",readOnly:true,fileCount:0,missingFileCount:0,latestScanStatus:null,revision: 1, filesystemPath:"/redacted",enabled:true,latestScanStartedAtUnixMs:null,updatedAtUnixMs:1,storage:{state:"healthy",checkedAtUnixMs:1,reachable:true,directory:true,readable:true,writable:false,totalBytes:1,availableBytes:1,usedPercent:0,filesystemType:"ext4",reasons:[]}}],"Europe/Berlin");
-    expect(markup).toContain("Fein"); expect(markup).toContain("coalesced"); expect(markup).toContain("IANA-Zeitzone");
+    expect(markup).toContain("Fein"); expect(markup).toContain("mit laufendem Scan zusammengefasst"); expect(markup).toContain("täglich 02:30"); expect(markup).toContain("Scan abgeschlossen"); expect(markup).not.toContain("Wochentagmaske"); expect(markup).toContain("IANA-Zeitzone");
     const host = document.createElement("main");
     host.innerHTML = markup;
     expect(host.querySelector<HTMLButtonElement>("[data-retire-profile]")!.dataset.policyRevision).toBe("2");
@@ -100,7 +100,7 @@ describe("P2.4 policy administration",()=>{
 
   it("submits all schedule fields after exact confirmation", async () => {
     const host = document.createElement("main");
-    host.innerHTML = '<form id="create-schedule"><input name="libraryId" value="library"><input name="name" value="night"><input name="localTime" value="03:15"><input name="timeZone" value="Europe/Berlin"><input name="weekdayMask" value="31"><input name="fullScan" type="checkbox" checked></form>';
+    host.innerHTML = '<form id="create-schedule"><input name="libraryId" value="library"><input name="name" value="night"><input name="localTime" value="03:15"><input name="timeZone" value="Europe/Berlin"><input type="checkbox" name="weekday" value="0" checked><input type="checkbox" name="weekday" value="1" checked><input type="checkbox" name="weekday" value="2" checked><input type="checkbox" name="weekday" value="3" checked><input type="checkbox" name="weekday" value="4" checked><input name="fullScan" type="checkbox" checked></form>';
     document.body.append(host);
     const action = vi.spyOn(policyApi, "createSchedule").mockResolvedValue(undefined as never);
     const refresh = vi.fn().mockResolvedValue(undefined);
@@ -109,6 +109,18 @@ describe("P2.4 policy administration",()=>{
     confirm("APPLY SCHEDULE new");
     await vi.waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(action).toHaveBeenCalledWith({libraryId:"library",name:"night",localTime:"03:15",timeZone:"Europe/Berlin",weekdayMask:31,fullScan:true,enabled:true}, "APPLY SCHEDULE new");
+  });
+
+  it("refuses a schedule without weekdays before asking for confirmation", async () => {
+    const host = document.createElement("main");
+    host.innerHTML = '<p id="admin-message" role="status"></p><form id="create-schedule"><input name="libraryId" value="library"><input name="name" value="night"><input name="localTime" value="03:15"><input name="timeZone" value="Europe/Berlin"><input type="checkbox" name="weekday" value="0"></form>';
+    document.body.append(host);
+    const action = vi.spyOn(policyApi, "createSchedule").mockResolvedValue(undefined as never);
+    bindPolicyActions(host, vi.fn());
+    host.querySelector("form")!.dispatchEvent(new Event("submit", {cancelable:true}));
+    await vi.waitFor(() => expect(host.textContent).toContain("mindestens einen Wochentag"));
+    expect(document.querySelector("dialog")).toBeNull();
+    expect(action).not.toHaveBeenCalled();
   });
 
   it.each(["retireProfile", "deleteSchedule"] as const)("does not retry %s after a revision conflict", async (method) => {

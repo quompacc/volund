@@ -1,3 +1,4 @@
+import { componentLabel, runStatusLabel } from "./admin-labels";
 import { operationsApi } from "./api";
 import type { OperationalComponent, OperationalState, OperationsHealth } from "./types";
 
@@ -13,10 +14,10 @@ export function operationsPanel(health: OperationsHealth, locale: string, timeZo
       <article><div><strong>Datenbank</strong><small>PostgreSQL ${database.serverVersion} · Migrationen ${database.appliedMigrations}/${database.expectedMigrations} · Tabellen ${database.schemaTables}/${database.expectedSchemaTables}</small></div>${stateBadge(database.state)}</article>
       ${health.workers.map((worker) => componentRow(worker, locale, timeZone)).join("")}
       ${componentRow(health.backup, locale, timeZone)}
-      <article><div><strong>Bibliotheksspeicher</strong><small>${health.libraries.length} Wurzeln · ${libraries.healthy} gesund · ${libraries.degraded} eingeschränkt · ${libraries.blocked} blockiert</small></div>${stateBadge(worstState(health.libraries.map((library) => library.storage.state)))}</article>
+      <article><div><strong>Bibliotheksspeicher</strong><small>${health.libraries.length === 1 ? "1 Bibliothek" : `${health.libraries.length} Bibliotheken`} · ${libraries.healthy} gesund · ${libraries.degraded} eingeschränkt · ${libraries.blocked} blockiert</small></div>${stateBadge(worstState(health.libraries.map((library) => library.storage.state)))}</article>
     </div>
-    <div class="section-heading"><div><p class="eyebrow">LETZTE LÄUFE</p><h3>Scans</h3></div><span>${health.recentScans.length}</span></div>
-    <div class="admin-list">${health.recentScans.length === 0 ? "<p class=\"admin-copy\">Noch keine Scans vorhanden.</p>" : health.recentScans.map((scan) => `<article><div><strong>${escapeMarkup(scan.libraryKey)}</strong><small>${scan.full ? "Vollständig" : "Inkrementell"} · ${formatTime(scan.requestedAtUnixMs, locale, timeZone)}</small></div><span class="role-badge">${escapeMarkup(scan.hasError ? "FEHLER" : scan.status.toUpperCase())}</span></article>`).join("")}</div>
+    <div class="section-heading operations-subheading"><div><p class="eyebrow">LETZTE LÄUFE</p><h3>Scans</h3></div><span>${health.recentScans.length}</span></div>
+    <div class="admin-list">${health.recentScans.length === 0 ? "<p class=\"admin-copy\">Noch keine Scans vorhanden.</p>" : health.recentScans.map((scan) => `<article><div><strong>${escapeMarkup(scan.libraryKey)}</strong><small>${scan.full ? "Vollständig" : "Inkrementell"} · ${formatTime(scan.requestedAtUnixMs, locale, timeZone)}</small></div><span class="role-badge">${escapeMarkup(scan.hasError ? "FEHLER" : runStatusLabel(scan.status).toUpperCase())}</span></article>`).join("")}</div>
   </section>`;
 }
 
@@ -68,9 +69,6 @@ function formatInterval(seconds: number): string {
   return `${seconds} s`;
 }
 
-function componentLabel(key: string): string {
-  return ({ "preview-worker": "Vorschau-Worker", "scan-worker": "Scan-Worker", backup: "Sicherung" } as Record<string, string>)[key] ?? key;
-}
 
 function reasonLabel(reason: string): string {
   return ({

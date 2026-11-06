@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VÖLUND Administration Prüfansicht</title>
+<div id="app"></div>
+<!-- Synthetische Admin-Prüfansicht: Layout aller Tabs mit realistischen Daten, ohne Server. ?view=administration&tab=storage -->
+<script type="module">
+const t = Date.UTC(2026, 10, 6, 5, 0);
+const id = (n) => `00000000-0000-4000-8000-00000000000${n}`;
+const page = (items = []) => ({ items, total: items.length, offset: 0, limit: 50 });
+const storage = { state: 'healthy', checkedAtUnixMs: t, reachable: true, directory: true, readable: true, writable: true, totalBytes: 4031000000000, availableBytes: 2161000000000, usedPercent: 46, filesystemType: 'ext4', reasons: [] };
+const library = { id: id(1), key: 'cad', name: 'CAD Library', readOnly: false, fileCount: 3177, missingFileCount: 0, latestScanStatus: 'completed', revision: 3, filesystemPath: '/srv/volund/library', enabled: true, latestScanStartedAtUnixMs: t, latestScan: { id: id(2), status: 'completed', full: false, discoveredFiles: 3177, hashedFiles: 12, attempt: 1, cancellationRequested: false, errorMessage: null }, updatedAtUnixMs: t, storage };
+const component = (key) => ({ key, state: 'healthy', lastOutcome: 'success', lastSucceededAtUnixMs: t, lastFailedAtUnixMs: null, expectedIntervalSeconds: 60, reasons: [] });
+const job = (n, kind, status, title) => ({ id: id(n), kind, status, title, context: kind === 'scan' ? 'CAD Library' : 'Baugruppen/nextion-display-5-0/CAD/5.0-Bezel.STEP', profile: kind === 'scan' ? null : 'web', attempt: 1, retryOfId: null, cancellationRequestedAtUnixMs: null, requestedAtUnixMs: t, startedAtUnixMs: t, finishedAtUnixMs: status === 'running' ? null : t, progressCurrent: 3, progressTotal: 5, diagnostic: status === 'failed' ? 'OCCT could not import STEP data' : null, canRetry: status === 'failed', canCancel: status === 'running' });
+const values = {
+  '/setup': { initialized: true, bootstrapAvailable: false },
+  '/session': { sessionId: id(3), userId: id(4), email: 'owner@example.invalid', displayName: 'Prüfung', role: 'owner', mustChangePassword: false },
+  '/health': { status: 'ok', version: '0.41.2' },
+  '/roots': [library], '/models': [], '/tags': page(), '/collections': page(), '/authors': page(),
+  '/sessions': [{ id: id(3), current: true, createdAtUnixMs: t, lastSeenAtUnixMs: t, idleExpiresAtUnixMs: t, absoluteExpiresAtUnixMs: t, clientAddress: '192.0.2.20', userAgent: 'Firefox' }, { id: id(5), current: false, createdAtUnixMs: t, lastSeenAtUnixMs: t, idleExpiresAtUnixMs: t, absoluteExpiresAtUnixMs: t, clientAddress: '192.0.2.31', userAgent: 'Mozilla/5.0 (Android 15) Firefox/140.0' }],
+  '/settings': [
+    { key: 'instance.name', domain: 'instance', valueType: 'string', value: 'VÖLUND', origin: 'default', editable: true, sensitive: false, revision: 0, effect: 'immediate', constraints: { minLength: 1, maxLength: 80 } },
+    { key: 'instance.timeZone', domain: 'instance', valueType: 'enum', value: 'Europe/Berlin', origin: 'default', editable: true, sensitive: false, revision: 0, effect: 'immediate', constraints: { allowed: ['Europe/Berlin', 'UTC'] } },
+    { key: 'security.sessionIdleMinutes', domain: 'security', valueType: 'integer', value: 480, origin: 'persisted', editable: true, sensitive: false, revision: 2, effect: 'immediate', constraints: { minimum: 5, maximum: 1440, unit: 'minutes' } },
+    { key: 'limits.importMaxFiles', domain: 'limits', valueType: 'integer', value: 10000, origin: 'default', editable: false, sensitive: false, revision: 0, effect: 'restart', constraints: { unit: 'files', compiled: true } },
+    { key: 'database.connectionOverride', domain: 'database', valueType: 'secret', value: null, origin: 'environment', editable: false, sensitive: true, configured: true, revision: 0, effect: 'restart', constraints: { operatorManaged: true } },
+  ], '/preferences': { previewAutoLoad: 'selected', background: 'dark', gridVisible: true, contrast: 'balanced', renderStyle: 'solid', problemMinimumSeverity: 'warning', revision: 4 },
+  '/users': [{ id: id(4), email: 'owner@example.invalid', displayName: 'Prüfung', role: 'owner', status: 'active', createdAtUnixMs: t, lastLoginAtUnixMs: t, lockedUntilUnixMs: null, mustChangePassword: false }, { id: id(6), email: 'gast@example.invalid', displayName: 'Gast', role: 'viewer', status: 'active', createdAtUnixMs: t, lastLoginAtUnixMs: null, lockedUntilUnixMs: null, mustChangePassword: true }],
+  '/conversion-profiles': [{ id: id(7), name: 'web', nativePreset: 'web', linearDeflection: null, angularDeflection: null, enabled: true, builtIn: true, revision: 1 }, { id: id(8), name: 'fine', nativePreset: 'fine', linearDeflection: null, angularDeflection: null, enabled: true, builtIn: true, revision: 1 }],
+  '/scan-schedules': [{ id: id(13), libraryId: id(1), libraryName: "CAD Library", name: "Nächtlicher Scan", localTime: "02:00", timeZone: "Europe/Berlin", weekdayMask: 127, fullScan: false, enabled: true, nextRunAtUnixMs: t, lastScheduledAtUnixMs: t, lastOutcome: "enqueued", lastScanId: id(2), revision: 1, lastScanStatus: "completed" }],
+  '/operations/health': { state: 'healthy', checkedAtUnixMs: t, version: '0.41.2', database: { state: 'healthy', serverVersion: 170006, schemaTables: 37, expectedSchemaTables: 37, appliedMigrations: 33, expectedMigrations: 33 }, workers: [component('scan-worker'), component('preview-worker'), component('scheduler')], backup: component('backup'), libraries: [library], recentScans: [{ id: id(2), libraryKey: 'cad', status: 'completed', full: false, requestedAtUnixMs: t, finishedAtUnixMs: t, hasError: false }] },
+  '/retention/preview': { artifactRuns: 0, artifactFiles: 0, artifactBytes: 0, diagnostics: 0, reasonCodes: [] },
+  '/jobs': page([job(9, 'conversion', 'running', 'Vorschau erzeugen'), job(10, 'conversion', 'failed', 'Vorschau erzeugen'), job(11, 'scan', 'completed', 'Bibliotheksscan')]),
+  '/quarantines': page(),
+  '/account/tokens': [{ id: id(12), name: 'CAD-Import', prefix: '3f9a1c07', scope: 'catalog-write', createdAtUnixMs: t, expiresAtUnixMs: t + 90 * 864e5, lastUsedAtUnixMs: t }],
+};
+window.fetch = async (input, init) => {
+  const path = new URL(String(input), location.href).pathname.replace('/api/v1', '');
+  if (init?.method && init.method !== 'GET') return Response.json({ error: { message: 'Prüfansicht: Mutation gesperrt' } }, { status: 405 });
+  if (Object.hasOwn(values, path)) return Response.json(values[path]);
+  document.documentElement.dataset.fixtureError = path;
+  return Response.json({ error: { message: `Fixture fehlt: ${path}` } }, { status: 501 });
+};
+await import('/src/main.ts');
+const tab = new URLSearchParams(location.search).get('tab');
+if (tab) { const until = Date.now() + 8000; const pick = () => { const b = document.querySelector(`[data-admin-area="${tab}"]`); if (b) b.click(); else if (Date.now() < until) setTimeout(pick, 50); }; pick(); }
+</script>
+</html>

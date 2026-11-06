@@ -1,3 +1,4 @@
+import { runStatusLabel } from "./admin-labels";
 import { jobsApi } from "./api";
 import { confirmExact } from "./confirmation";
 import type { JobPage, ManagedJob } from "./types";
@@ -11,7 +12,7 @@ export function jobPanel(page: JobPage, filters: JobFilters, locale: string, tim
     <div class="section-heading"><div><p class="eyebrow">AUFTRÄGE</p><h2 id="jobs-heading">Hintergrundarbeit</h2></div><span>${page.total}</span></div>
     <form id="job-filters" class="admin-form" aria-label="Aufträge filtern">
       <label><span>Auftragsart</span><select name="kind"><option value="">Alle Arten</option>${option("scan", "Scans", filters.kind)}${option("conversion", "Vorschauen", filters.kind)}</select></label>
-      <label><span>Status</span><select name="status"><option value="">Alle Zustände</option>${["queued", "running", "completed", "ready", "failed", "cancelled", "timed-out"].map((status) => option(status, statusLabel(status), filters.status)).join("")}</select></label>
+      <label><span>Status</span><select name="status"><option value="">Alle Zustände</option>${["queued", "running", "completed", "ready", "failed", "cancelled", "timed-out"].map((status) => option(status, runStatusLabel(status), filters.status)).join("")}</select></label>
       <button class="secondary-action">Anwenden</button>
     </form>
     <div class="admin-list">${page.items.length === 0 ? '<p class="admin-copy">Keine passenden Aufträge.</p>' : visible.map((job) => jobRow(job, locale, timeZone)).join("")}</div>
@@ -72,7 +73,7 @@ export function jobRow(job: ManagedJob, locale: string, timeZone: string): strin
   const cancellation = job.cancellationRequestedAtUnixMs === null ? "" : " · Abbruch angefordert";
   const diagnostic = job.diagnostic ? `<small class="admin-message error">${escapeMarkup(job.diagnostic)}</small>` : "";
   return `<article><div><strong>${escapeMarkup(job.title)}</strong><small>${job.kind === "scan" ? "Scan" : "Vorschau"} · ${escapeMarkup(job.context)}${job.profile ? ` · ${escapeMarkup(job.profile)}` : ""} · Versuch ${job.attempt} · ${progressLabel} · ${formatTime(job.requestedAtUnixMs, locale, timeZone)}${cancellation}</small>${diagnostic}</div>
-    <span class="role-badge state-${jobState(job.status)}">${escapeMarkup(statusLabel(job.status).toUpperCase())}</span>
+    <span class="role-badge state-${jobState(job.status)}">${escapeMarkup(runStatusLabel(job.status).toUpperCase())}</span>
     ${job.canRetry ? actionButton(job, "retry", "Wiederholen") : ""}${job.canCancel ? actionButton(job, "cancel", "Abbrechen") : ""}</article>`;
 }
 
@@ -90,9 +91,6 @@ function jobState(status: string): "healthy" | "degraded" | "blocked" {
   return "healthy";
 }
 
-function statusLabel(status: string): string {
-  return ({ queued: "Eingeplant", running: "Läuft", completed: "Abgeschlossen", ready: "Bereit", partial: "Teilweise", failed: "Fehlgeschlagen", cancelled: "Abgebrochen", "timed-out": "Zeitlimit" } as Record<string, string>)[status] ?? status;
-}
 
 function formatTime(timestamp: number, locale: string, timeZone: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(timestamp);

@@ -5,6 +5,7 @@ import "./imports.css";
 import "./raw-catalog.css";
 import "./responsive.css";
 import "./phase5.css";
+import "./admin-layout.css";
 import { mountAdministration } from "./admin";
 import { catalogApi, identityApi } from "./api";
 import { appViewUrl, readAppView, readModelId } from "./app-state";

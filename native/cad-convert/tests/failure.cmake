@@ -58,6 +58,38 @@ if(NOT EMPTY_DIAGNOSTICS MATCHES "meshing produced zero triangles")
   message(FATAL_ERROR "empty STEP geometry produced no actionable diagnostic")
 endif()
 
+# Some CAD exports carry only product metadata and no shape representation.
+set(METADATA_STEP "${OUTPUT_DIR}/metadata-only.step")
+set(METADATA_ARTIFACTS "${OUTPUT_DIR}/metadata-only-artifacts")
+file(WRITE "${METADATA_STEP}" "ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('metadata only'),'2;1');
+FILE_NAME('metadata-only.step','2026-11-06T00:00:00',(''),(''),'test','test','');
+FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
+ENDSEC;
+DATA;
+#1=APPLICATION_CONTEXT('configuration controlled 3d designs of mechanical parts and assemblies');
+#2=MECHANICAL_CONTEXT('NONE',#1,'mechanical');
+#3=PRODUCT('part','part','',(#2));
+#4=PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE('1','',#3,.NOT_KNOWN.);
+#5=DESIGN_CONTEXT('detailed design',#1,'design');
+#6=PRODUCT_DEFINITION('design','',#4,#5);
+#7=PRODUCT_DEFINITION_SHAPE('NONE','NONE',#6);
+ENDSEC;
+END-ISO-10303-21;
+")
+execute_process(
+  COMMAND "${CONVERTER}" convert --input "${METADATA_STEP}" --output "${METADATA_ARTIFACTS}"
+  RESULT_VARIABLE METADATA_RESULT
+)
+if(METADATA_RESULT EQUAL 0 OR EXISTS "${METADATA_ARTIFACTS}/preview.glb")
+  message(FATAL_ERROR "converter accepted a STEP file without geometry")
+endif()
+file(READ "${METADATA_ARTIFACTS}/diagnostics.json" METADATA_DIAGNOSTICS)
+if(NOT METADATA_DIAGNOSTICS MATCHES "STEP file contains no geometry")
+  message(FATAL_ERROR "metadata-only STEP produced no actionable diagnostic: ${METADATA_DIAGNOSTICS}")
+endif()
+
 set(UNSUPPORTED_SOURCE "${OUTPUT_DIR}/unsupported.xyz")
 set(UNSUPPORTED_ARTIFACTS "${OUTPUT_DIR}/unsupported-artifacts")
 file(WRITE "${UNSUPPORTED_SOURCE}" "unsupported fixture\n")

@@ -113,7 +113,7 @@ try:
             time.sleep(0.1)
     else:
         raise AssertionError('Testdaemon startet nicht innerhalb von zehn Sekunden')
-    assert health == {'status': 'ok', 'version': '0.41.2'}, health
+    assert health == {'status': 'ok', 'version': '0.41.3'}, health
     for route in ('/', '/models/direct-install-check'):
         with urllib.request.urlopen(origin + route, timeout=5) as response:
             assert response.read() == (root / 'web/index.html').read_bytes()

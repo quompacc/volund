@@ -23,9 +23,9 @@ export function apiTokenPanel(tokens: ApiToken[], canWrite: boolean, locale = "d
   const date = (value: number) => new Date(value).toLocaleDateString(locale);
   const rows = tokens.length === 0
     ? '<p class="empty-copy">Noch kein API-Token angelegt.</p>'
-    : `<ul class="api-token-list">${tokens.map((token) => `<li><div><strong>${escapeMarkup(token.name)}</strong>
+    : `<div class="admin-list api-token-list">${tokens.map((token) => `<article><div><strong>${escapeMarkup(token.name)}</strong>
         <small><code>vlnd_${escapeMarkup(token.prefix)}…</code> · ${SCOPE_LABEL[token.scope]} · gültig bis ${date(token.expiresAtUnixMs)} · ${token.lastUsedAtUnixMs ? `zuletzt genutzt ${date(token.lastUsedAtUnixMs)}` : "noch nicht genutzt"}</small></div>
-        <button type="button" class="secondary-action" data-revoke-token="${escapeMarkup(token.id)}">Widerrufen</button></li>`).join("")}</ul>`;
+        <button type="button" class="secondary-action" data-revoke-token="${escapeMarkup(token.id)}">Widerrufen</button></article>`).join("")}</div>`;
   return `<section class="admin-section" id="api-tokens"><div class="section-heading"><div><p class="eyebrow">AUTOMATISIERUNG</p><h2>API-Tokens</h2></div><span>${tokens.length} aktiv</span></div>
     <p class="admin-copy">Für Skripte und Werkzeuge: <code>Authorization: Bearer vlnd_…</code>. Tokens verwalten weder Konten noch Sitzungen und reichen nie über deine Rolle hinaus.</p>
     <form id="create-api-token" class="admin-form">

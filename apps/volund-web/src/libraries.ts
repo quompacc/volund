@@ -1,4 +1,5 @@
 import { ApiError, jobsApi, libraryApi } from "./api";
+import { runStatusLabel } from "./admin-labels";
 import { confirmExact } from "./confirmation";
 import { dryRunMarkup, formatBytes, scanActive, scanProgressMarkup } from "./library-onboarding";
 import type { ManagedLibrary } from "./types";
@@ -119,7 +120,7 @@ export function bindLibraryActions(host: HTMLElement, refresh: () => Promise<voi
 
 export function libraryRow(library: ManagedLibrary): string {
   const latest = library.latestScanStatus
-    ? `${library.latestScanStatus}${library.latestScanStartedAtUnixMs ? ` · ${new Date(library.latestScanStartedAtUnixMs).toLocaleString()}` : ""}`
+    ? `Scan ${runStatusLabel(library.latestScanStatus).toLowerCase()}${library.latestScanStartedAtUnixMs ? ` · ${new Date(library.latestScanStartedAtUnixMs).toLocaleString()}` : ""}`
     : "noch nicht gescannt";
   const status = library.enabled ? "AKTIV" : "DEAKTIVIERT";
   const scanning = scanActive(library.latestScan) || library.latestScanStatus === "queued" || library.latestScanStatus === "running";

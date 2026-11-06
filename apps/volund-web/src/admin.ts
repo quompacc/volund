@@ -1,3 +1,4 @@
+import { accountStatusLabel, roleLabel } from "./admin-labels";
 import { catalogApi, identityApi, jobsApi, operationsApi, policyApi } from "./api";
 import { apiTokenPanel, bindApiTokens } from "./api-tokens-view";
 import { confirmExact } from "./confirmation";
@@ -275,7 +276,7 @@ function bindActions(host: HTMLElement, refresh: () => Promise<void>): void {
 }
 
 function accountPanel(actor: CurrentSession): string {
-  return `<section class="admin-section"><div class="section-heading"><div><p class="eyebrow">KONTO</p><h2>${escapeMarkup(actor.displayName)}</h2></div><span class="role-badge">${escapeMarkup(actor.role)}</span></div>
+  return `<section class="admin-section"><div class="section-heading"><div><p class="eyebrow">KONTO</p><h2>${escapeMarkup(actor.displayName)}</h2></div><span class="role-badge">${escapeMarkup(roleLabel(actor.role))}</span></div>
     <p class="admin-copy">${escapeMarkup(actor.email)}</p><form id="change-own-password" class="admin-form"><label><span>Aktuelles Passwort</span><input name="currentPassword" type="password" autocomplete="current-password" required></label><label><span>Neues Passwort</span><input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label><label><span>Passwort bestätigen</span><input name="confirmation" type="password" autocomplete="new-password" minlength="12" required></label><button class="secondary-action">Eigenes Passwort ändern</button></form></section>`;
 }
 
@@ -287,8 +288,8 @@ function preferencesPanel(preferences: UserPreferences): string {
     <label>Kontrast<select name="contrast">${option("balanced", preferences.contrast, "Ausgewogen")}${option("high", preferences.contrast, "Hoch")}</select></label>
     <label>Darstellung<select name="renderStyle">${option("solid", preferences.renderStyle, "Flächen")}${option("wireframe", preferences.renderStyle, "Drahtmodell")}</select></label>
     <label>Mindestschwere im Problemcenter<select name="problemMinimumSeverity">${option("info", preferences.problemMinimumSeverity, "Information")}${option("warning", preferences.problemMinimumSeverity, "Warnung")}${option("error", preferences.problemMinimumSeverity, "Fehler")}</select></label>
-    <label class="checkbox-label"><input type="checkbox" name="gridVisible"${preferences.gridVisible ? " checked" : ""}> Raster in 3D-Ansichten anzeigen</label>
-    <button class="primary-action" type="submit">Persönliche Einstellungen speichern</button><p class="form-message" aria-live="polite"></p></form></section>`;
+    <div class="form-actions"><label class="checkbox-label"><input type="checkbox" name="gridVisible"${preferences.gridVisible ? " checked" : ""}> Raster in 3D-Ansichten anzeigen</label>
+    <button class="primary-action" type="submit">Persönliche Einstellungen speichern</button></div><p class="form-message" aria-live="polite"></p></form></section>`;
 }
 
 function sessionPanel(sessions: OwnSession[], locale: string, timeZone: string): string {
@@ -300,7 +301,7 @@ function sessionPanel(sessions: OwnSession[], locale: string, timeZone: string):
 
 function userPanel(users: ManagedUser[], actor: CurrentSession): string {
   const roles = availableRoles(actor.role);
-  const options = roles.map((role) => `<option value="${role}">${role[0]!.toUpperCase()}${role.slice(1)}</option>`).join("");
+  const options = roles.map((role) => `<option value="${role}">${roleLabel(role)}</option>`).join("");
   return `<section class="admin-section"><div class="section-heading"><div><p class="eyebrow">ZUGRIFF</p><h2>Nutzer</h2></div><span>${users.length}</span></div>
     <form id="create-user" class="admin-form" aria-label="Nutzer anlegen"><h3 class="admin-form-title">Nutzer direkt anlegen</h3><label><span>Name</span><input name="displayName" required maxlength="160"></label><label><span>E-Mail</span><input name="email" type="email" required></label>
       <label><span>Rolle</span><select name="role">${options}</select></label>
@@ -317,8 +318,8 @@ function userRow(user: ManagedUser, actor: CurrentSession): string {
   const protectedOwner = actor.role === "administrator" && user.role === "owner";
   const protectedAccount = own || protectedOwner;
   const action = userStatusAction(user.status);
-  return `<article><div><strong>${escapeMarkup(user.displayName)}</strong><small>${escapeMarkup(user.email)} · ${escapeMarkup(user.status)}${user.mustChangePassword ? " · Passwortwechsel erforderlich" : ""}</small></div>
-    <select data-user-role="${user.id}" data-current-role="${user.role}" aria-label="Rolle für ${escapeAttribute(user.displayName)}"${protectedAccount ? ' disabled title="Dieses geschützte Konto kann hier nicht geändert werden"' : ""}>${roles.map((role) => `<option value="${role}"${role === user.role ? " selected" : ""}>${role}</option>`).join("")}</select>
+  return `<article><div><strong>${escapeMarkup(user.displayName)}</strong><small>${escapeMarkup(user.email)} · ${escapeMarkup(accountStatusLabel(user.status))}${user.mustChangePassword ? " · Passwortwechsel erforderlich" : ""}</small></div>
+    <select data-user-role="${user.id}" data-current-role="${user.role}" aria-label="Rolle für ${escapeAttribute(user.displayName)}"${protectedAccount ? ' disabled title="Dieses geschützte Konto kann hier nicht geändert werden"' : ""}>${roles.map((role) => `<option value="${role}"${role === user.role ? " selected" : ""}>${roleLabel(role)}</option>`).join("")}</select>
     <button class="secondary-action" data-reset-password="${user.id}"${protectedOwner ? ' disabled title="Owner können nur durch einen Owner geändert werden"' : ""}>Passwort</button>
     <button class="secondary-action" data-user-status="${user.id}" data-next-status="${action.next}"${protectedAccount ? ' disabled title="Dieses geschützte Konto kann hier nicht geändert werden"' : ""}>${own ? "Aktuelles Konto" : protectedOwner ? "Owner-geschützt" : action.label}</button></article>`;
 }

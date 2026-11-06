@@ -2,7 +2,7 @@
 
 **The sovereign CAD vault.**
 
-Current source version: **0.41.2**, with further work recorded under
+Current source version: **0.41.3**, with further work recorded under
 `Unreleased`. VÖLUND is a pre-1.0 alpha technical foundation and design
 prototype, not a product-complete catalog or an unattended-production release.
 See the

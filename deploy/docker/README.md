@@ -32,8 +32,8 @@ Die Worker starten erst, wenn `volund-migrate` erfolgreich war.
 Im Repository-Wurzelverzeichnis des ausgewählten, geprüften Stands:
 
 ```sh
-docker build -f deploy/docker/Dockerfile --target app -t volund:0.41.2 .
-docker build -f deploy/docker/Dockerfile --target db  -t volund-db:0.41.2 .
+docker build -f deploy/docker/Dockerfile --target app -t volund:0.41.3 .
+docker build -f deploy/docker/Dockerfile --target db  -t volund-db:0.41.3 .
 ```
 
 Der App-Build führt die Web-Tests und die CTests des Konverters aus. Der
