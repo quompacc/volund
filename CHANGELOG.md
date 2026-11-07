@@ -8,6 +8,15 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-11-07
+
+### Added
+
+- „In Stralar öffnen“ direkt auf der Modellseite (ADR 0042): sichtbarer Knopf in der Kopfzeile, der
+  die passende Datei des Modells öffnet (zuerst ein druckbares 3MF/STL, dann ein anderes Netz, dann
+  die primäre STEP-Datei), und ein Eintrag im Dateimenü („•••“ bzw. Rechtsklick) für jede STL-, 3MF-,
+  OBJ-, STEP- oder IGES-Datei. Bisher gab es den Knopf nur versteckt im Datei-Detail-Dialog.
+
 ## [0.44.0] - 2026-11-07
 
 ### Added

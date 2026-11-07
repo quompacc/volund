@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fileDetailMarkup } from "./model-presentation";
-import { isStralarImportable, loadStralarAvailability, stralarOpenUrl } from "./stralar-link";
+import { isStralarImportable, loadStralarAvailability, pickStralarFile, stralarActionMarkup, stralarOpenUrl } from "./stralar-link";
 import type { ModelFile } from "./types";
 
 const file: ModelFile = {
@@ -37,5 +37,31 @@ describe("Stralar link", () => {
     expect(fileDetailMarkup({ ...file, missing: true }, false, [], true)).not.toContain("In Stralar öffnen");
     expect(fileDetailMarkup({ ...file, path: "doc/readme.pdf" }, false, [], true)).not.toContain("In Stralar öffnen");
     expect(fileDetailMarkup(file, false, [], true)).toContain('target="_blank"');
+  });
+});
+
+describe("Stralar on the model page", () => {
+  const make = (id: string, path: string, over: Partial<ModelFile> = {}): ModelFile => ({ ...file, id, path, primary: false, printable: false, ...over });
+
+  it("picks a printable mesh first, then any mesh, then the primary STEP, never a missing file", () => {
+    const step = make("s", "a/teil.step", { primary: true });
+    const otherStep = make("s2", "a/variante.stp");
+    const stl = make("m", "a/teil.stl");
+    const printable = make("p", "a/teil_print.3mf", { printable: true });
+    const gone = make("g", "a/weg.stl", { printable: true, missing: true });
+    const pdf = make("d", "a/anleitung.pdf");
+    expect(pickStralarFile([pdf, step, stl, printable, gone], null)?.id).toBe("p");
+    expect(pickStralarFile([pdf, step, stl, gone], null)?.id).toBe("m");
+    expect(pickStralarFile([otherStep, step, pdf], null)?.id).toBe("s");
+    expect(pickStralarFile([otherStep, make("s3", "x.step")], "s3")?.id).toBe("s3");
+    expect(pickStralarFile([pdf, gone], null)).toBeNull();
+  });
+
+  it("renders a header link that opens the chosen file in a new tab", () => {
+    expect(stralarActionMarkup(null)).toBe("");
+    const markup = stralarActionMarkup(make("p", "a/teil.3mf"));
+    expect(markup).toContain("In Stralar öffnen");
+    expect(markup).toContain('target="_blank"');
+    expect(markup).toContain(`href="/stralar/#/open?file=${encodeURIComponent("/api/v1/files/p/content")}&amp;name=teil.3mf"`);
   });
 });

@@ -64,6 +64,9 @@ credentials to it and without letting a client choose its identity there.
   integration reports `false`. The web application shows Stralar entries only when it is
   `true`.
 - The navigation entry "Stralar" opens `/stralar/` in a new tab.
+- Since 0.45.0 the model page offers it directly: a header action opens the model's best file
+  (printable mesh, then any mesh, then the primary STEP), and the file menu has the entry for
+  every importable file. The file detail dialog keeps its entry.
 - "In Stralar öffnen" in the file view links to
   `/stralar/#/open?file=/api/v1/files/{id}/content&name={file name}`. The request sits in the
   URL fragment, so it never reaches a server log. Because Stralar runs under the same origin,

@@ -1,6 +1,6 @@
 # VÖLUND container images (ADR 0039). Build context: repository root.
 #
-#   docker build -f deploy/docker/Dockerfile --target app -t volund:0.44.0 .
+#   docker build -f deploy/docker/Dockerfile --target app -t volund:0.45.0 .
 #   docker build -f deploy/docker/Dockerfile --target db  -t volund-db:17 .
 #
 # The app image keeps the native layout of deploy/debian/README.md: binaries in
