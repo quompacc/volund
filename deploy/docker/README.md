@@ -32,8 +32,8 @@ Die Worker starten erst, wenn `volund-migrate` erfolgreich war.
 Im Repository-Wurzelverzeichnis des ausgewählten, geprüften Stands:
 
 ```sh
-docker build -f deploy/docker/Dockerfile --target app -t volund:0.43.0 .
-docker build -f deploy/docker/Dockerfile --target db  -t volund-db:0.43.0 .
+docker build -f deploy/docker/Dockerfile --target app -t volund:0.44.0 .
+docker build -f deploy/docker/Dockerfile --target db  -t volund-db:0.44.0 .
 ```
 
 Der App-Build führt die Web-Tests und die CTests des Konverters aus. Der
@@ -73,11 +73,27 @@ docker compose up -d
 docker compose logs volund-migrate
 ```
 
-Die optionale Stralar-Anbindung unter `/stralar/`
-([ADR 0042](../../docs/adr/0042-stralar-proxy.md)) ist im Container-Betrieb noch
-nicht verfügbar: der Container erreicht keinen Loopback-Dienst des Hosts. Sie
-folgt mit einem eigenen Stralar-Container; bis dahin `VOLUND_STRALAR_URL` nicht
-setzen.
+### Optional: Stralar unter `/stralar/`
+
+Der Slicer Stralar ([ADR 0042](../../docs/adr/0042-stralar-proxy.md)) läuft als
+eigener Container neben VÖLUND. Das Image entsteht im Stralar-Repository
+(`docker build -f deploy/docker/Dockerfile -t stralar:local .`). Eingebunden wird
+es mit der Zusatzdatei `compose.stralar.yaml`:
+
+```sh
+install -d -o 10020 -g 10020 -m 0700 /srv/volund/stralar
+openssl rand -hex 32 > /srv/volund/secrets/stralar-proxy
+chown 10010:10020 /srv/volund/secrets/stralar-proxy   # lesbar für VÖLUND und Stralar
+chmod 0440 /srv/volund/secrets/stralar-proxy
+cp deploy/docker/compose.stralar.yaml /srv/volund/
+docker compose -f compose.yaml -f compose.stralar.yaml up -d
+```
+
+VÖLUND erreicht Stralar nur über das interne Netz `stralar` als
+`http://stralar:5184`. Einen Host-Port gibt es nicht. Stralar hängt zusätzlich
+im Netz `stralar-lan`, um die Drucker im LAN zu erreichen. Daten und
+Druckerliste je Konto liegen unter `/srv/volund/stralar`. Ohne die Zusatzdatei
+bleibt `/stralar/` abgeschaltet.
 
 ## Umzug einer nativen Installation
 

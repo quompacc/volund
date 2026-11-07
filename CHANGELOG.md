@@ -8,6 +8,23 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-11-07
+
+### Added
+
+- Stralar im Container-Betrieb (ADR 0042, Nachtrag): Die Zusatzdatei
+  `deploy/docker/compose.stralar.yaml` startet den Stralar-Container neben VÖLUND. Beide
+  teilen nur das interne Netz `stralar` (kein Host-Port); Stralar erreicht die Drucker über
+  ein eigenes Netz. Das gemeinsame Geheimnis ist ein Compose-Secret, lesbar für beide.
+
+### Changed
+
+- `VOLUND_STRALAR_URL` akzeptiert neben Loopback auch einen Compose-Dienstnamen
+  (`http://stralar:5184`, ein einzelnes kleingeschriebenes DNS-Label ohne Punkt). Andere
+  IP-Adressen, Namen mit Punkt, HTTPS und Pfade bleiben abgewiesen.
+- Die native Anleitung verweist auf Stralars systemd-Unit, die das Geheimnis als
+  systemd-Credential liest (keine Kopie mehr nötig).
+
 ## [0.43.0] - 2026-11-07
 
 ### Added

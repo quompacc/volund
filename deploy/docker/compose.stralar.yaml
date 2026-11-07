@@ -1,0 +1,43 @@
+# Optional: the Stralar slicer under /stralar/ (ADR 0042, container addendum).
+#
+# The image comes from the Stralar repository (deploy/docker/Dockerfile):
+#   docker build -f deploy/docker/Dockerfile -t stralar:local .
+# Start VÖLUND together with it:
+#   docker compose -f compose.yaml -f compose.stralar.yaml up -d
+#
+# VÖLUND reaches Stralar only on the internal network `stralar` (no host port, no route
+# outside). Stralar additionally joins `stralar-lan` to reach the printers on the LAN
+# (MQTT 8883, FTPS 990, camera 322). Both read the shared secret; Stralar trusts an account
+# identity only together with it.
+services:
+  stralar:
+    image: ${STRALAR_IMAGE:-stralar:local}
+    user: "10020:10020"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:size=256m"]
+    restart: unless-stopped
+    stop_grace_period: 20s
+    environment:
+      STRALAR_PROXY_SECRET_FILE: /run/secrets/stralar-proxy
+    secrets: [stralar-proxy]
+    volumes:
+      - ${VOLUND_DATA}/stralar:/var/lib/stralar
+    networks: [stralar, stralar-lan]
+
+  volund:
+    environment:
+      VOLUND_STRALAR_URL: http://stralar:5184
+      VOLUND_STRALAR_SECRET_FILE: /run/secrets/stralar-proxy
+    secrets: [stralar-proxy]
+    networks: [proxy, stralar]
+
+secrets:
+  stralar-proxy:
+    file: ${VOLUND_DATA}/secrets/stralar-proxy
+
+networks:
+  stralar:
+    internal: true
+  stralar-lan: {}

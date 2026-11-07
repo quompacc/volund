@@ -1,6 +1,7 @@
 //! Reverse proxy to the Stralar slicer service under `/stralar/` (ADR 0042).
 //!
-//! Stralar runs on the same host (loopback only) and trusts the identity VÖLUND hands it. This
+//! Stralar runs on the same host (loopback, or a container on the internal compose network) and
+//! trusts the identity VÖLUND hands it. This
 //! module is the boundary: it authenticates the browser session, refuses bearer tokens (a
 //! browser-only area, ADR 0037), requires a same-origin `Origin` on every mutation (Stralar's
 //! browser code does not carry VÖLUND's CSRF token), removes VÖLUND's own credentials and any
@@ -56,17 +57,19 @@ impl StralarConfig {
         Self::from_values(&url, &secret)
     }
 
-    /// Validate raw values: the upstream must be plain HTTP on a loopback address (Stralar never
-    /// leaves the host) and the secret at least 32 characters long.
+    /// Validate raw values: the upstream must be plain HTTP on a loopback address or a
+    /// container service name (Stralar never leaves the host or the internal compose network)
+    /// and the secret at least 32 characters long.
     #[must_use]
     pub fn from_values(url: &str, secret: &str) -> Self {
         let url = url.trim();
         if url.is_empty() {
             return Self::Disabled;
         }
-        let Some(authority) = loopback_authority(url) else {
+        let Some(authority) = internal_authority(url) else {
             return Self::Misconfigured(format!(
-                "{URL_ENV} must be http://127.0.0.1:PORT, http://[::1]:PORT or http://localhost:PORT"
+                "{URL_ENV} must be http://127.0.0.1:PORT, http://[::1]:PORT, http://localhost:PORT \
+                 or http://SERVICE:PORT (a compose service name without dots)"
             ));
         };
         let secret = secret.trim();
@@ -104,18 +107,34 @@ pub(crate) async fn availability(State(state): State<ApiState>) -> Json<StralarA
     })
 }
 
-/// `host:port` of a loopback `http://` URL without path, user info or query; else `None`.
-pub(crate) fn loopback_authority(url: &str) -> Option<String> {
+/// `host:port` of an `http://` URL without path, user info or query whose host is loopback or a
+/// container service name; else `None`.
+///
+/// A service name is a single lowercase DNS label (`stralar`, `stralar-1`): it has no dots, so it
+/// is not a public host name, and Docker resolves it only on the compose network both containers
+/// share (ADR 0042, container addendum). IP addresses other than loopback are refused.
+pub(crate) fn internal_authority(url: &str) -> Option<String> {
     let rest = url.strip_prefix("http://")?.trim_end_matches('/');
     if rest.contains(['/', '@', '?', '#']) {
         return None;
     }
     let (host, port) = rest.rsplit_once(':')?;
-    if !matches!(host, "127.0.0.1" | "[::1]" | "localhost") {
+    if !matches!(host, "127.0.0.1" | "[::1]" | "localhost") && !is_service_name(host) {
         return None;
     }
     let port: u16 = port.parse().ok().filter(|port| *port != 0)?;
     Some(format!("{host}:{port}"))
+}
+
+/// A single lowercase DNS label that starts with a letter: `[a-z][a-z0-9-]{0,62}`, no trailing `-`.
+fn is_service_name(host: &str) -> bool {
+    let bytes = host.as_bytes();
+    matches!(bytes.first(), Some(b'a'..=b'z'))
+        && bytes.len() <= 63
+        && !host.ends_with('-')
+        && bytes
+            .iter()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || *b == b'-')
 }
 
 #[derive(Clone)]

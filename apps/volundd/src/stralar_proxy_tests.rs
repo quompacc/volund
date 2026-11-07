@@ -16,7 +16,7 @@ fn configuration_is_disabled_without_url() {
 }
 
 #[test]
-fn configuration_accepts_loopback_http_only() {
+fn configuration_accepts_loopback_or_a_service_name_over_http_only() {
     assert_eq!(
         StralarConfig::from_values("http://127.0.0.1:5184", SECRET),
         StralarConfig::Enabled {
@@ -24,14 +24,28 @@ fn configuration_accepts_loopback_http_only() {
             secret: SECRET.to_owned()
         }
     );
+    assert_eq!(
+        StralarConfig::from_values("http://stralar:5184", SECRET),
+        StralarConfig::Enabled {
+            authority: "stralar:5184".to_owned(),
+            secret: SECRET.to_owned()
+        }
+    );
     for url in [
         "https://127.0.0.1:5184",
         "http://192.168.1.10:5184",
+        "http://10.0.0.5:5184",
         "http://127.0.0.1",
         "http://127.0.0.1:0",
         "http://127.0.0.1:5184/path",
         "http://user@127.0.0.1:5184",
         "http://example.org:5184",
+        "http://stralar.local:5184",
+        "http://Stralar:5184",
+        "http://1stralar:5184",
+        "http://stralar-:5184",
+        "http://stra_lar:5184",
+        "http://[fe80::1]:5184",
     ] {
         assert!(
             matches!(
@@ -52,16 +66,24 @@ fn configuration_requires_a_long_secret() {
 }
 
 #[test]
-fn loopback_authority_keeps_host_and_port() {
+fn internal_authority_keeps_host_and_port() {
     assert_eq!(
-        loopback_authority("http://localhost:8080/").as_deref(),
+        internal_authority("http://localhost:8080/").as_deref(),
         Some("localhost:8080")
     );
     assert_eq!(
-        loopback_authority("http://[::1]:5184").as_deref(),
+        internal_authority("http://[::1]:5184").as_deref(),
         Some("[::1]:5184")
     );
-    assert_eq!(loopback_authority("http://127.0.0.1:99999"), None);
+    assert_eq!(
+        internal_authority("http://stralar-1:5184").as_deref(),
+        Some("stralar-1:5184")
+    );
+    assert_eq!(internal_authority("http://127.0.0.1:99999"), None);
+    assert_eq!(
+        internal_authority(&format!("http://{}:5184", "a".repeat(64))),
+        None
+    );
 }
 
 #[test]

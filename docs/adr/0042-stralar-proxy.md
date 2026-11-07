@@ -70,3 +70,20 @@ credentials to it and without letting a client choose its identity there.
   it fetches the download itself with the browser session; no bearer link or token is
   created. Stralar accepts only same-origin paths (`/…`, never `//…`) in this form and asks
   the user before importing; an opened link alone never changes data.
+
+## Addendum (0.44.0): container deployment
+
+- Stralar ships a container image (Stralar `deploy/docker/Dockerfile`, block S5). VÖLUND's
+  compose stack includes it through the optional file `deploy/docker/compose.stralar.yaml`.
+- `VOLUND_STRALAR_URL` now also accepts `http://SERVICE:PORT`, where `SERVICE` is a single
+  lowercase DNS label (`stralar`). Such a name has no dots, so it is no public host name; Docker
+  resolves it on the compose network. IP addresses other than loopback, dotted names, HTTPS
+  and paths stay refused, as before.
+- Network boundary: VÖLUND and Stralar share the `internal` network `stralar` (no route out, no
+  host port). Stralar additionally joins `stralar-lan` to reach the printers; VÖLUND does not.
+  Because the container listens on all its interfaces, Stralar enforces the shared secret on
+  every request (it only does so in server mode and refuses a non-loopback bind otherwise).
+- Secret: one file `secrets/stralar-proxy`, owner `10010` (VÖLUND), group `10020` (Stralar), mode
+  `0440`, mounted into both containers as a compose secret.
+- The native deployment is unchanged: Stralar's systemd unit (`deploy/systemd/stralar.service`
+  in Stralar) reads `/etc/volund/stralar.secret` as a systemd credential and listens on loopback.

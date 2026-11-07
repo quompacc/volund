@@ -248,10 +248,13 @@ printf '%s\n' 'VOLUND_STRALAR_URL=http://127.0.0.1:5184' \
 sudo systemctl restart volundd
 ```
 
-Start Stralar with `STRALAR_SERVER_MODE=1`, an absolute `STRALAR_DATA_DIR` and
-`STRALAR_PROXY_SECRET_FILE` pointing at a copy of the same secret readable by the
-Stralar service account. Without `VOLUND_STRALAR_URL`, `/stralar/` does not exist;
-an invalid value makes it answer 503 and `volundd` logs the reason at startup.
+Stralar ships a systemd unit for this (`deploy/systemd/stralar.service` and
+`deploy/README.md` in the Stralar repository). It runs in server mode on
+`127.0.0.1:5184`, keeps its data in `/var/lib/stralar` and reads
+`/etc/volund/stralar.secret` as a systemd credential, so no copy of the secret
+and no shared group are needed. Without `VOLUND_STRALAR_URL`, `/stralar/` does not
+exist; an invalid value makes it answer 503 and `volundd` logs the reason at
+startup.
 
 ## Database migration
 
