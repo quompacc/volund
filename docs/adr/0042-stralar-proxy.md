@@ -57,3 +57,16 @@ credentials to it and without letting a client choose its identity there.
 - Within Stralar every account gets its own workspace; printer access per account follows
   in Stralar (block S6).
 - The `/stralar/` prefix is reserved; the web application must not use it for own routes.
+
+## Addendum (0.43.0): opening files in Stralar
+
+- `GET /api/v1/stralar` (authenticated) returns `{"available": bool}`; a misconfigured
+  integration reports `false`. The web application shows Stralar entries only when it is
+  `true`.
+- The navigation entry "Stralar" opens `/stralar/` in a new tab.
+- "In Stralar öffnen" in the file view links to
+  `/stralar/#/open?file=/api/v1/files/{id}/content&name={file name}`. The request sits in the
+  URL fragment, so it never reaches a server log. Because Stralar runs under the same origin,
+  it fetches the download itself with the browser session; no bearer link or token is
+  created. Stralar accepts only same-origin paths (`/…`, never `//…`) in this form and asks
+  the user before importing; an opened link alone never changes data.

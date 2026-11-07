@@ -10,12 +10,12 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use axum::Router;
 use axum::body::Body;
 use axum::extract::{Request, State};
 use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, Uri, header};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::{any, get};
+use axum::{Json, Router};
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::rt::TokioExecutor;
@@ -80,6 +80,28 @@ impl StralarConfig {
             secret: secret.to_owned(),
         }
     }
+}
+
+impl StralarConfig {
+    /// True when `/stralar/` is usable (valid upstream and secret).
+    #[must_use]
+    pub fn is_enabled(&self) -> bool {
+        matches!(self, Self::Enabled { .. })
+    }
+}
+
+/// Response of `GET /api/v1/stralar`.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct StralarAvailability {
+    available: bool,
+}
+
+/// `GET /api/v1/stralar`: whether the browser application may offer Stralar (navigation
+/// entry, "In Stralar öffnen"). A misconfigured integration reports `false`.
+pub(crate) async fn availability(State(state): State<ApiState>) -> Json<StralarAvailability> {
+    Json(StralarAvailability {
+        available: state.stralar.is_enabled(),
+    })
 }
 
 /// `host:port` of a loopback `http://` URL without path, user info or query; else `None`.

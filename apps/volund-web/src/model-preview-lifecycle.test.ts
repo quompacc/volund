@@ -54,6 +54,7 @@ describe("model preview lifecycle", () => {
     vi.spyOn(catalogApi, "thumbnailCandidates").mockResolvedValue([]);
     vi.spyOn(catalogApi, "slicerTargets").mockResolvedValue([]);
     vi.spyOn(catalogApi, "modelProblems").mockResolvedValue([]);
+    vi.spyOn(catalogApi, "stralar").mockResolvedValue({ available: false });
     vi.spyOn(catalogApi, "modelHistory").mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
     const previews = vi.spyOn(catalogApi, "previews").mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
     const enqueue = vi.spyOn(catalogApi, "enqueuePreview").mockResolvedValue({ id: "queued", status: "queued" });

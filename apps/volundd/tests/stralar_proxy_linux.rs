@@ -91,6 +91,11 @@ async fn stralar_proxy_forwards_identity_and_guards_the_boundary() {
     .await
     .unwrap();
 
+    // The browser application learns whether to offer Stralar.
+    let (status, _, availability) = send(&browser, get("/api/v1/stralar")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(availability, json!({"available": true}));
+
     // Signed-in GET: prefix stripped, identity + secret added, VÖLUND credentials removed.
     let (status, _, seen) = send(&browser, get("/stralar/api/model?id=7")).await;
     assert_eq!(status, StatusCode::OK, "{seen}");
@@ -170,4 +175,7 @@ async fn stralar_proxy_forwards_identity_and_guards_the_boundary() {
     let (status, _, body) = send(&broken, get("/stralar/api/model")).await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(body["error"]["code"], "stralar_misconfigured");
+    let (status, _, availability) = send(&broken, get("/api/v1/stralar")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(availability, json!({"available": false}));
 }

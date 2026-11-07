@@ -38,6 +38,7 @@ pub(crate) struct ApiState {
     pub identity: IdentityConfig,
     pub session: SessionConfig,
     pub slicer: crate::slicer_handoff::SlicerConfig,
+    pub stralar: crate::stralar_proxy::StralarConfig,
 }
 
 /// Build the versioned catalog HTTP API with a shared database pool.
@@ -121,6 +122,7 @@ pub(crate) fn router_with_state(pool: PgPool, web_root: PathBuf, parts: StatePar
         identity,
         session,
         slicer,
+        stralar: stralar.clone(),
     };
     let request_state = state.clone();
     let public_api = crate::api_public::routes().route_layer(middleware::from_fn_with_state(
@@ -201,6 +203,7 @@ fn protected_routes(state: ApiState) -> Router<ApiState> {
             axum::routing::patch(update_model_file),
         )
         .route("/slicer-targets", get(crate::slicer_handoff::list_targets))
+        .route("/stralar", get(crate::stralar_proxy::availability))
         .route(
             "/models/{model_id}/files/{file_id}/slicer-handoff",
             post(crate::slicer_handoff::create_route),

@@ -8,6 +8,17 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-11-07
+
+### Added
+
+- „In Stralar öffnen“ (ADR 0042): Die Dateiansicht bietet für STL-, 3MF-, OBJ-, STEP- und
+  IGES-Dateien einen Knopf, der Stralar in einem neuen Tab öffnet und die Datei dort lädt.
+  Stralar holt sie selbst über dieselbe Sitzung (`/api/v1/files/{id}/content`); es entsteht
+  kein Bearer-Link. In der Navigation öffnet „Stralar“ den Slicer unabhängig davon.
+- `GET /api/v1/stralar` meldet angemeldeten Sitzungen, ob die Anbindung eingerichtet ist;
+  nur dann zeigt die Oberfläche die Stralar-Einträge.
+
 ## [0.42.0] - 2026-11-07
 
 ### Added

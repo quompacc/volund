@@ -140,6 +140,7 @@ pub const ROUTE_POLICIES: &[RouteRule] = &[
         RoutePolicy::Authenticated,
     ),
     rule("GET", "/api/v1/slicer-targets", RoutePolicy::Authenticated),
+    rule("GET", "/api/v1/stralar", RoutePolicy::Authenticated),
     rule(
         "PATCH",
         "/api/v1/models/{}/files/{}",

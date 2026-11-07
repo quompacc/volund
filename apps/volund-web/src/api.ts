@@ -1,6 +1,6 @@
 import type { ModelProblem } from "./problem-types";
 import { checkSessionResponse } from "./session-expiry";
-import type { AuthorInput, AuthorSummary, CadFile, CatalogHistoryEvent, CatalogOptions, CollectionDetail, CollectionSummary, ConversionProfile, CurrentSession, Folder, Health, ImportCommit, ImportConfiguration, ImportDraft, ImportDraftLifecycle, ImportManifestEntry, ImportMetadataRequest, ImportReview, ImportStorage, ImportUpload, InvitationCreated, JobPage, LibraryPathValidation, LibraryRoot, LibraryScanResult, LifecycleAction, LifecyclePlan, LifecycleResult, ManagedJob, ManagedLibrary, ManagedUser, ModelComponent, ModelFile, ModelHistoryEvent, ModelSummary, MovedFile, OperationsHealth, OwnSession, Page, Preview, PreviewEnqueue, QuarantineSummary, RetentionPreview, RetentionResult, ScanSchedule, Setting, SetupStatus, SlicerHandoff, SlicerTarget, TagSummary, ThumbnailCandidate, UpdateModelFileRequest, UpdateModelRequest, UserPreferences } from "./types";
+import type { AuthorInput, AuthorSummary, CadFile, CatalogHistoryEvent, CatalogOptions, CollectionDetail, CollectionSummary, ConversionProfile, CurrentSession, Folder, Health, ImportCommit, ImportConfiguration, ImportDraft, ImportDraftLifecycle, ImportManifestEntry, ImportMetadataRequest, ImportReview, ImportStorage, ImportUpload, InvitationCreated, JobPage, LibraryPathValidation, LibraryRoot, LibraryScanResult, LifecycleAction, LifecyclePlan, LifecycleResult, ManagedJob, ManagedLibrary, ManagedUser, ModelComponent, ModelFile, ModelHistoryEvent, ModelSummary, MovedFile, OperationsHealth, OwnSession, Page, Preview, PreviewEnqueue, QuarantineSummary, RetentionPreview, RetentionResult, ScanSchedule, Setting, SetupStatus, SlicerHandoff, SlicerTarget, StralarAvailability, TagSummary, ThumbnailCandidate, UpdateModelFileRequest, UpdateModelRequest, UserPreferences } from "./types";
 import type { ModelSearchPage, SavedView, SavedViewQuery } from "./model-list-types";
 import type { ProblemOverviewPage } from "./problem-overview";
 import type { BulkEditRequest } from "./model-bulk-edit";
@@ -171,6 +171,7 @@ export const catalogApi = {
   updateModelFile: (modelId: string, fileId: string, request: UpdateModelFileRequest): Promise<ModelFile> =>
     mutationJson(`/api/v1/models/${encodeURIComponent(modelId)}/files/${encodeURIComponent(fileId)}`, "PATCH", request),
   slicerTargets: (): Promise<SlicerTarget[]> => requestJson("/api/v1/slicer-targets"),
+  stralar: (): Promise<StralarAvailability> => requestJson("/api/v1/stralar"),
   createSlicerHandoff: (modelId: string, fileId: string, targetId: string): Promise<SlicerHandoff> =>
     mutationJson(`/api/v1/models/${encodeURIComponent(modelId)}/files/${encodeURIComponent(fileId)}/slicer-handoff`, "POST", { targetId }),
   modelHistory: (modelId: string, offset = 0): Promise<Page<ModelHistoryEvent>> =>

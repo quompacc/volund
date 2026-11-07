@@ -165,3 +165,10 @@ fn mutations_need_a_present_same_origin() {
     assert!(!is_mutation(&Method::GET));
     assert!(!is_mutation(&Method::HEAD));
 }
+
+#[test]
+fn only_a_valid_configuration_is_enabled() {
+    assert!(StralarConfig::from_values("http://127.0.0.1:5184", SECRET).is_enabled());
+    assert!(!StralarConfig::Disabled.is_enabled());
+    assert!(!StralarConfig::from_values("http://10.0.0.1:5184", SECRET).is_enabled());
+}

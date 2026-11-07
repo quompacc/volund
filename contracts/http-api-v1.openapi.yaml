@@ -1367,6 +1367,19 @@ paths:
           description: >-
             slicer_handoff_misconfigured: targets are configured but invalid, or
             no valid public HTTPS base URL exists. Clients must not offer a handoff.
+  /api/v1/stralar:
+    get:
+      operationId: getStralarAvailability
+      description: >-
+        Whether the Stralar slicer studio is reachable under /stralar/ (ADR 0042).
+        A misconfigured integration reports false. Browser sessions only use it to
+        decide whether to offer the navigation entry and "In Stralar öffnen".
+      responses:
+        "200":
+          description: Availability of the Stralar integration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StralarAvailability" }
   /api/v1/models/{modelId}/export:
     get:
       operationId: exportModel
@@ -3675,6 +3688,12 @@ components:
       required: [targetId]
       properties:
         targetId: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,31}$" }
+    StralarAvailability:
+      type: object
+      additionalProperties: false
+      required: [available]
+      properties:
+        available: { type: boolean }
     SlicerTarget:
       type: object
       required: [id, name, scheme]

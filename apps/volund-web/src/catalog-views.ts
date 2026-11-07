@@ -11,6 +11,7 @@ import { bindCatalogHistories } from "./catalog-history";
 import { mountAuthors } from "./authors";
 import { mountCollections, mountTags } from "./metadata-catalog";
 import { loadSlicerTargets, mountSlicerButtons } from "./slicer-launch";
+import { loadStralarAvailability } from "./stralar-link";
 import { loadDashboardModels, mountModelList } from "./model-list-view";
 import { mountProblemOverview } from "./problem-overview";
 import { admitPreview, renderingCapability, tileAllowed } from "./rendering-capability";
@@ -127,11 +128,11 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
   }
   void catalogApi.model(modelId).then(
     async (model) => {
-      const [filePage, collectionsCatalog, tagsCatalog, settings, preferences, thumbnailCandidates, slicerTargets, problems] = await Promise.all([
+      const [filePage, collectionsCatalog, tagsCatalog, settings, preferences, thumbnailCandidates, slicerTargets, problems, stralarAvailable] = await Promise.all([
         catalogApi.modelFiles(model.id), catalogApi.collections(), catalogApi.tags(false), identityApi.settings(),
         identityApi.preferences(),
         catalogApi.thumbnailCandidates(model.id), loadSlicerTargets(catalogApi.slicerTargets),
-        catalogApi.modelProblems(model.id),
+        catalogApi.modelProblems(model.id), loadStralarAvailability(catalogApi.stralar),
       ]);
       const files = filePage.items;
       const previewProfile = settingString(settings, "previews.defaultProfile", "web") === "fine" ? "fine" : "web";
@@ -336,7 +337,7 @@ function mountModel(host: HTMLElement, modelId: string | null, cleanup: Array<()
       });
       const openFileDetail = (file: ModelFile): void => {
         host.querySelector<HTMLElement>("#model-file-dialog-title")!.textContent = file.caption || file.path.split("/").at(-1) || file.path;
-        host.querySelector<HTMLElement>("#model-file-dialog-details")!.innerHTML = fileDetailMarkup(file, canEdit, slicerTargets);
+        host.querySelector<HTMLElement>("#model-file-dialog-details")!.innerHTML = fileDetailMarkup(file, canEdit, slicerTargets, stralarAvailable);
         bindCatalogHistories(dialog);
         host.querySelector<HTMLElement>("#model-file-dialog-preview")!.append(stage);
         dialog.showModal();

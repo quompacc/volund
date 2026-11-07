@@ -13,6 +13,7 @@ import type { AppView } from "./app-state";
 import { requireSession } from "./auth";
 import { onSessionExpired } from "./session-expiry";
 import { mountNavigationScroll } from "./navigation-scroll";
+import { loadStralarAvailability, STRALAR_PATH } from "./stralar-link";
 import { mountCatalogView } from "./catalog-views";
 import { problemBadge } from "./problem-overview";
 import { mountNotifications, notificationToggleMarkup } from "./notification-center";
@@ -46,11 +47,15 @@ function mountApplication(session: CurrentSession): void {
   </header><div class="app-shell"><aside class="app-nav">
     <div class="nav-group"><p>Bibliothek</p><button data-view="dashboard"><i class="icon icon-home" aria-hidden="true"></i><span>Übersicht</span></button><button data-view="models"><i class="icon icon-cube" aria-hidden="true"></i><span>Modelle</span><b id="nav-model-count">—</b></button><button data-view="collections"><i class="icon icon-layers" aria-hidden="true"></i><span>Sammlungen</span></button><button data-view="tags"><i class="icon icon-tag" aria-hidden="true"></i><span>Tags</span></button><button data-view="authors"><i class="icon icon-user" aria-hidden="true"></i><span>Autoren</span></button><button data-view="problems"><i class="icon icon-alert" aria-hidden="true"></i><span>Probleme</span><b id="nav-problem-count"></b></button></div>
     <div class="nav-group"><p>Daten</p><button data-view="raw"><i class="icon icon-folder" aria-hidden="true"></i><span>Rohdateien</span><b id="nav-file-count">—</b></button>${canEdit ? '<button data-view="imports"><i class="icon icon-upload" aria-hidden="true"></i><span>Importe</span></button><button data-view="import-history"><i class="icon icon-history" aria-hidden="true"></i><span>Importhistorie</span></button>' : ""}</div>
+    <div class="nav-group" id="nav-tools" hidden><p>Werkzeuge</p><button id="nav-stralar" type="button" title="Slicer Stralar in neuem Tab öffnen"><i class="icon icon-link" aria-hidden="true"></i><span>Stralar</span></button></div>
     <div class="nav-group"><p>System</p><button data-view="administration"><i class="icon icon-settings" aria-hidden="true"></i><span>${canAdminister ? "Administration" : "Mein Konto"}</span></button></div>
     <div class="nav-foot"><span>${escapeMarkup(session.role.toUpperCase())}</span><p>Angemeldet als ${escapeMarkup(session.email)}. Zugriffe werden serverseitig geprüft.</p></div>
   </aside><main id="workspace" class="workspace"></main></div>`;
   const workspace = app.querySelector<HTMLElement>("#workspace")!;
   mountNavigationScroll(app.querySelector<HTMLElement>(".app-nav")!);
+  // Stralar (ADR 0042): offered only when the server has the integration set up.
+  app.querySelector<HTMLButtonElement>("#nav-stralar")!.addEventListener("click", () => { window.open(STRALAR_PATH, "_blank", "noopener"); });
+  void loadStralarAvailability(catalogApi.stralar).then((available) => { app.querySelector<HTMLElement>("#nav-tools")!.hidden = !available; });
   mountThemeToggle(app.querySelector<HTMLButtonElement>("#theme-toggle")!, document.documentElement, themeStorage);
   mountNotifications(app.querySelector<HTMLButtonElement>("#notifications-toggle")!, app.querySelector<HTMLElement>("#notification-panel")!,
     { list: identityApi.notifications, markSeen: identityApi.markNotificationsSeen }, (view, id) => navigate(view, id));

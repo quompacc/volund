@@ -91,6 +91,7 @@ describe("model page without a usable GPU", () => {
     vi.spyOn(catalogApi, "thumbnailCandidates").mockResolvedValue([]);
     vi.spyOn(catalogApi, "slicerTargets").mockResolvedValue([]);
     vi.spyOn(catalogApi, "modelProblems").mockResolvedValue([]);
+    vi.spyOn(catalogApi, "stralar").mockResolvedValue({ available: false });
     vi.spyOn(catalogApi, "modelHistory").mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
     vi.spyOn(catalogApi, "previews").mockResolvedValue({
       items: [{ id: "p-1", status: "ready", artifacts: [{ kind: "preview-glb", url: "/preview.glb", byteSize }] }],

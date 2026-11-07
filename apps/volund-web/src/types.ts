@@ -382,6 +382,8 @@ export interface UpdateModelFileRequest {
 }
 
 export interface SlicerTarget { id: string; name: string; scheme: string; }
+/** `GET /api/v1/stralar` (ADR 0042). */
+export interface StralarAvailability { available: boolean; }
 export interface SlicerHandoff {
   targetId: string;
   launchUrl: string;
