@@ -2,7 +2,7 @@
 
 Automatisch aus `cargo metadata --locked --offline` und den gegen Cargo.lock
 SHA-256-geprüften `.crate`-Archiven erzeugt. Stand: 2026-09-08.
-Alle 236 externen Pakete, einschließlich optionaler und plattformfremder Zweige.
+Alle 238 externen Pakete, einschließlich optionaler und plattformfremder Zweige.
 Lizenzausdrücke sind unveränderte Paketangaben; `/` bezeichnet hier die ältere
 Cargo-Schreibweise für eine Wahl. Volltexte: [rust-notices.txt](rust-notices.txt).
 Die Text-IDs sind SHA-256 über UTF-8 mit LF. Sonderfall `wasite`: [Bewertung](README.md).
@@ -187,6 +187,7 @@ Die Text-IDs sind SHA-256 über UTF-8 mit LF. Sonderfall `wasite`: [Bewertung](R
 | tracing-attributes | 0.1.31 | MIT | 7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da | 898b1ae9821e98da |
 | tracing-core | 0.1.36 | MIT | db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a | 898b1ae9821e98da, 58545fed1565e42d |
 | tracing | 0.1.44 | MIT | 63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100 | 898b1ae9821e98da |
+| try-lock | 0.2.5 | MIT | e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b | c816a0749cdc6bf0 |
 | typenum | 1.20.1 | MIT OR Apache-2.0 | b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20 | db11fec9946737df, 516b24e051bf5630, a825bd853ab71619 |
 | unicase | 2.9.0 | MIT OR Apache-2.0 | dbc4bc3a9f746d862c45cb89d705aa10f187bb96c76001afab07a0d35ce60142 | a60eea8175145316, 4f6bd11a0f17fe5b |
 | unicode-bidi | 0.3.18 | MIT OR Apache-2.0 | 5c1cb5db39152898a79168971543b1cb5020dff7fe43c8dc468b0885f5e29df5 | edb20b474f6cbd4f, a60eea8175145316, 7b63ecd5f1902af1 |
@@ -197,6 +198,7 @@ Die Text-IDs sind SHA-256 über UTF-8 mit LF. Sonderfall `wasite`: [Bewertung](R
 | utf8_iter | 1.0.4 | Apache-2.0 OR MIT | b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be | c30152c94a6d75e0, cfc7749b96f63bd3, 3fa4ca83dcc92378 |
 | vcpkg | 0.2.15 | MIT/Apache-2.0 | accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426 | 3708458dee7f359a, ff7d99434986ba68 |
 | version_check | 0.9.5 | MIT/Apache-2.0 | 0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a | a60eea8175145316, b7e650f3fce5c532 |
+| want | 0.3.2 | MIT | ec4cdd0dd910afe868b7ef477227d8d538b46b3075031afee8a9f2acb0a2ed0b | a65f5d0a945d2677 |
 | wasi | 0.11.1+wasi-snapshot-preview1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b | a60eea8175145316, 268872b9816f90fd, 23f18e03dc49df91 |
 | wasite | 0.1.0 | Apache-2.0 OR BSL-1.0 OR MIT | b8dad83b4f25e74f184f64c43b150b91efe7647395b42289f38e50566d82855b | BSL-1.0, siehe README |
 | wasm-bindgen-macro-support | 0.2.127 | MIT OR Apache-2.0 | e11d33f857dc2fb11b8bc75aee111aa9cbeb12cd9f25efd3d4c2a3dd4e235284 | a60eea8175145316, 378f5840b258e277 |

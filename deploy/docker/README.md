@@ -32,8 +32,8 @@ Die Worker starten erst, wenn `volund-migrate` erfolgreich war.
 Im Repository-Wurzelverzeichnis des ausgewählten, geprüften Stands:
 
 ```sh
-docker build -f deploy/docker/Dockerfile --target app -t volund:0.41.3 .
-docker build -f deploy/docker/Dockerfile --target db  -t volund-db:0.41.3 .
+docker build -f deploy/docker/Dockerfile --target app -t volund:0.42.0 .
+docker build -f deploy/docker/Dockerfile --target db  -t volund-db:0.42.0 .
 ```
 
 Der App-Build führt die Web-Tests und die CTests des Konverters aus. Der
@@ -72,6 +72,12 @@ Override-Datei mit zusätzlichem schreibgeschütztem Mount. Danach:
 docker compose up -d
 docker compose logs volund-migrate
 ```
+
+Die optionale Stralar-Anbindung unter `/stralar/`
+([ADR 0042](../../docs/adr/0042-stralar-proxy.md)) ist im Container-Betrieb noch
+nicht verfügbar: der Container erreicht keinen Loopback-Dienst des Hosts. Sie
+folgt mit einem eigenen Stralar-Container; bis dahin `VOLUND_STRALAR_URL` nicht
+setzen.
 
 ## Umzug einer nativen Installation
 

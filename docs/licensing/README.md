@@ -15,7 +15,7 @@ durch Verarbeitung keine neue Softwarelizenz.
 
 | Bereich | Ergebnis für diesen Quellstand |
 | --- | --- |
-| Rust: 236 externe Pakete | Vollständiger Lockfilebestand einschließlich optionaler Plattformzweige erfasst; keine fehlende Lizenzangabe. MIT, Apache-2.0, BSD, Zlib, Unicode und angebotene Wahlalternativen lassen sich unter Beibehaltung ihrer Hinweise mit AGPLv3 verbinden. |
+| Rust: 238 externe Pakete | Vollständiger Lockfilebestand einschließlich optionaler Plattformzweige erfasst; keine fehlende Lizenzangabe. MIT, Apache-2.0, BSD, Zlib, Unicode und angebotene Wahlalternativen lassen sich unter Beibehaltung ihrer Hinweise mit AGPLv3 verbinden. |
 | `matchit` | `MIT AND BSD-3-Clause`: beide Texte sind enthalten, keine bloße Wahl. |
 | `unicode-ident` | `(MIT OR Apache-2.0) AND Unicode-3.0`: Unicode-Text zusätzlich zu den angebotenen Softwarelizenzen erhalten. Auch separate Unicode-COPYRIGHT-Dateien anderer Pakete sind enthalten. |
 | `crc-catalog` | Beide Texte liegen in `LICENSES/` und sind vollständig aufgenommen. |

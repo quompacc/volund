@@ -231,6 +231,28 @@ When VÖLUND is served through HTTPS, set `VOLUND_SECURE_COOKIES=true`. A direct
 non-loopback listener refuses to start without this setting. Keep it unset only
 for the loopback HTTP service behind the same-origin reverse proxy.
 
+## Optional: Stralar slicer under `/stralar/`
+
+VÖLUND can serve the Stralar slicer studio to signed-in accounts under
+`/stralar/` ([ADR 0042](../../docs/adr/0042-stralar-proxy.md)). Stralar runs as
+its own service on the same host and listens on loopback only. Both services share
+one secret; Stralar trusts an account identity only together with it:
+
+```sh
+openssl rand -hex 32 | sudo tee /etc/volund/stralar.secret >/dev/null
+sudo chown root:volund /etc/volund/stralar.secret
+sudo chmod 0640 /etc/volund/stralar.secret
+printf '%s\n' 'VOLUND_STRALAR_URL=http://127.0.0.1:5184' \
+  'VOLUND_STRALAR_SECRET_FILE=/etc/volund/stralar.secret' |
+  sudo tee -a /etc/volund/volund.env >/dev/null
+sudo systemctl restart volundd
+```
+
+Start Stralar with `STRALAR_SERVER_MODE=1`, an absolute `STRALAR_DATA_DIR` and
+`STRALAR_PROXY_SECRET_FILE` pointing at a copy of the same secret readable by the
+Stralar service account. Without `VOLUND_STRALAR_URL`, `/stralar/` does not exist;
+an invalid value makes it answer 503 and `volundd` logs the reason at startup.
+
 ## Database migration
 
 The cluster uses checksums and keeps its data directory below

@@ -62,6 +62,7 @@ pub fn router_with_config(pool: sqlx::PgPool, slicer: SlicerConfig) -> axum::Rou
         crate::identity::IdentityConfig::default(),
         crate::session::SessionConfig::default(),
         slicer,
+        crate::stralar_proxy::StralarConfig::default(),
     );
     crate::api::router_with_state(pool, "/usr/share/volund/web".into(), state)
 }

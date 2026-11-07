@@ -1,5 +1,5 @@
 use axum::extract::{Extension, Path, Query, State};
-use axum::http::{HeaderName, HeaderValue, StatusCode};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router, middleware};
@@ -7,7 +7,6 @@ use sqlx::PgPool;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tower_http::services::{ServeDir, ServeFile};
-use tower_http::set_header::SetResponseHeaderLayer;
 use volund_core::ContentHash;
 
 use crate::api_auth;
@@ -86,7 +85,15 @@ pub fn router_with_security(
     session: SessionConfig,
 ) -> Router {
     let slicer = crate::slicer_handoff::SlicerConfig::from_environment();
-    let state = (derived_root, support_root, identity, session, slicer);
+    let stralar = crate::stralar_proxy::StralarConfig::from_environment();
+    let state = (
+        derived_root,
+        support_root,
+        identity,
+        session,
+        slicer,
+        stralar,
+    );
     router_with_state(pool, web_root, state)
 }
 
@@ -96,10 +103,11 @@ pub(crate) type StateParts = (
     IdentityConfig,
     SessionConfig,
     crate::slicer_handoff::SlicerConfig,
+    crate::stralar_proxy::StralarConfig,
 );
 
 pub(crate) fn router_with_state(pool: PgPool, web_root: PathBuf, parts: StateParts) -> Router {
-    let (derived_root, support_root, identity, session, slicer) = parts;
+    let (derived_root, support_root, identity, session, slicer, stralar) = parts;
     let index = web_root.join("index.html");
     let incoming_root = derived_root
         .parent()
@@ -121,28 +129,16 @@ pub(crate) fn router_with_state(pool: PgPool, web_root: PathBuf, parts: StatePar
     ));
     let protected_api = protected_routes(state.clone());
     let api = public_api.merge(protected_api).fallback(not_found);
-    Router::new()
+    let stralar = crate::stralar_proxy::router_with(state.clone(), stralar);
+    let router = Router::new()
         .nest("/api/v1", api)
         .fallback_service(ServeDir::new(web_root).fallback(ServeFile::new(index)))
         .with_state(state)
-        .layer(SetResponseHeaderLayer::if_not_present(
-            HeaderName::from_static("x-content-type-options"),
-            HeaderValue::from_static("nosniff"),
-        ))
-        .layer(SetResponseHeaderLayer::if_not_present(
-            HeaderName::from_static("x-frame-options"),
-            HeaderValue::from_static("DENY"),
-        ))
-        .layer(SetResponseHeaderLayer::if_not_present(
-            HeaderName::from_static("content-security-policy"),
-            HeaderValue::from_static(
-                "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",
-            ),
-        ))
-        .layer(middleware::from_fn_with_state(
-            request_state,
-            crate::operational_log::request_id,
-        ))
+        .merge(stralar);
+    crate::response_headers::with_defaults(router).layer(middleware::from_fn_with_state(
+        request_state,
+        crate::operational_log::request_id,
+    ))
 }
 
 #[allow(clippy::too_many_lines)] // Declarative route inventory remains easier to audit as one chain.

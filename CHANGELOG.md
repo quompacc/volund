@@ -8,6 +8,28 @@ until a signed release tag is created.
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-11-07
+
+### Added
+
+- Optionale Anbindung des Slicers Stralar unter `/stralar/` (ADR 0042): angemeldete
+  Browser-Sitzungen erreichen den Stralar-Dienst auf demselben Host über VÖLUND.
+  VÖLUND entfernt dabei Sitzungs-Cookie, CSRF-Token und vom Client gesetzte
+  `x-stralar-*`-Header und übergibt stattdessen die öffentliche Konto-ID und ein
+  gemeinsames Geheimnis. API-Tokens werden abgewiesen; ändernde Anfragen brauchen einen
+  vorhandenen, gleichen Origin. Uploads, Live-Status und Kamerabild werden gestreamt.
+  Konfiguration über `VOLUND_STRALAR_URL` (nur Loopback) und
+  `VOLUND_STRALAR_SECRET_FILE`; ohne Konfiguration existiert die Route nicht, eine
+  ungültige liefert 503 `stralar_misconfigured`. Im Container-Betrieb folgt die Anbindung
+  mit einem eigenen Stralar-Container.
+
+### Changed
+
+- Die Standard-Sicherheitsheader (`nosniff`, `X-Frame-Options`, Content-Security-Policy)
+  liegen in einem eigenen Modul; sie gelten weiter nur, wo eine Antwort keine eigenen setzt.
+- Neue Rust-Abhängigkeiten `want` 0.3.2 und `try-lock` 0.2.5 (MIT, über den HTTP-Client
+  von `hyper-util`) im Lizenzinventar erfasst.
+
 ## [0.41.3] - 2026-11-06
 
 ### Fixed
